@@ -1,11 +1,12 @@
 package com.parallelspace.controller.runtime;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "instances")
 public final class InstanceEntity {
-  @PrimaryKey public final String id;
+  @PrimaryKey @NonNull public final String id;
   public final String packageName;
   public final String displayName;
   public final String state;

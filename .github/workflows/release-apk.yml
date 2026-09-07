@@ -26,13 +26,15 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Restore release keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/parallel-verse-release.keystore"
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/parallel-verse-release.keystore"
+            echo "RELEASE_STORE_FILE=$RUNNER_TEMP/parallel-verse-release.keystore" >> "$GITHUB_ENV"
+          fi
       - name: Build release APK
         env:
-          RELEASE_STORE_FILE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && format('{0}/parallel-verse-release.keystore', runner.temp) || '' }}
           RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}

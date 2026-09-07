@@ -23,6 +23,10 @@ class _InstanceList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final instances = ref.watch(instancesProvider);
     if (instances.isEmpty) return const Center(child: Text('No instances yet'));
-    return ListView(children: [for (final instance in instances) ListTile(title: Text(instance))]);
+    return ListView(
+      children: [
+        for (final instance in instances) ListTile(title: Text(instance)),
+      ],
+    );
   }
 }

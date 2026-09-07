@@ -1,0 +1,10 @@
+name: parallel_verse_controller
+publish_to: none
+environment: { sdk: ">=3.5.0 <4.0.0" }
+dependencies:
+  flutter: { sdk: flutter }
+  flutter_riverpod: ^2.6.1
+dev_dependencies:
+  flutter_test: { sdk: flutter }
+  pigeon: ^22.7.2
+flutter: { uses-material-design: true }

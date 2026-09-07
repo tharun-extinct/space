@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:allowBackup="false" android:label="Parallel Verse" android:theme="@style/AppTheme">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Flutter is not loaded in this process. -->
+        <service android:name=".runtime.RuntimeService" android:process=":runtime" android:exported="false" />
+        <service android:name=".runtime.VirtualSlot0Service" android:process=":slot0" android:exported="false" />
+        <service android:name=".runtime.VirtualSlot1Service" android:process=":slot1" android:exported="false" />
+    </application>
+</manifest>

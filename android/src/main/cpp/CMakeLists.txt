@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(parallel_runtime)
+add_library(parallel_runtime SHARED runtime.cpp)
+find_library(log-lib log)
+target_link_libraries(parallel_runtime ${log-lib})
+target_compile_features(parallel_runtime PRIVATE cxx_std_20)

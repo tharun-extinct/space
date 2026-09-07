@@ -6,7 +6,7 @@ A Flutter controller can create and observe instance records through typed Andro
 
 ## Current verified status
 
-**Partial (2026-09-08).** The repository has a source scaffold for the controller, Android runtime, AIDL contract, Room schema, transition guard, and native boundary. It has not been built on this machine because Flutter and Gradle are absent.
+**Partial (2026-09-08).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and manually dispatched release-APK generation. No workflow run has yet verified the changes, and Gradle has not been run locally by design.
 
 ## Architecture dependencies
 
@@ -18,6 +18,8 @@ A Flutter controller can create and observe instance records through typed Andro
 ## Feature-specific implications
 
 The initial implementation deliberately does not load, modify, or execute a target APK. It provides the safe control-plane seams required before an application compatibility runtime is introduced.
+
+This phase has no backend dependency: login, licensing, remote manifests, telemetry, and server-side logging are explicitly deferred.
 
 ## Related blueprints
 
@@ -31,9 +33,11 @@ None yet.
 
 ## Relevant implementation and tests
 
-- `apps/flutter`: Riverpod UI and Pigeon schema.
-- `apps/android`: Java controller, AIDL service, Room entity/DAO, native API.
+- `flutter`: Riverpod UI and Pigeon schema.
+- `android`: Java controller, AIDL service, Room repository, slot services, native API.
 - `android/src/test`: Java state-transition unit tests.
+- `.github/workflows/verify.yml`: authoritative Flutter and Android verification.
+- `.github/workflows/release-apk.yml`: manually dispatched APK build; it signs only when all configured repository signing secrets are present.
 
 ## Acceptance criteria
 
@@ -41,6 +45,10 @@ None yet.
 - [x] Runtime control uses an explicit AIDL API.
 - [x] Metadata has one authoritative Java-owned Room schema.
 - [x] The native API is small and versioned.
+- [x] Instance metadata is persisted before runtime slot assignment.
+- [x] Slot allocation is bounded and has unit coverage.
+- [x] CI defines Flutter and Android verification jobs.
+- [x] CI can build and retain a manually dispatched release APK artifact without running Gradle locally.
 - [ ] The project builds on Android and Flutter toolchains.
 - [ ] Runtime recovery and storage isolation have automated tests.
 - [ ] An allowlisted target application completes compatibility validation.
@@ -49,4 +57,5 @@ None yet.
 
 - Generate Pigeon Java/Dart bindings using the Flutter toolchain.
 - Add the actual virtualization framework only after defining legal and technical compatibility requirements.
-- Configure signing, CI, crash reporting, and device-fleet testing.
+- Add the four release-signing secrets before distributing a production APK; unsigned artifacts are CI-only outputs.
+- Configure crash reporting and device-fleet testing.

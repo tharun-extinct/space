@@ -43,6 +43,17 @@ public final class RuntimeRepository {
         Arrays.asList(InstanceState.RUNNING.name(), InstanceState.STARTING.name(), InstanceState.STOPPING.name()));
   }
 
+  /** A runtime-process restart cannot prove slot liveness, so it conservatively clears reservations. */
+  public synchronized void reconcileAfterRuntimeRestart() {
+    for (InstanceEntity instance : database.instances().all()) {
+      if (InstanceState.STARTING.name().equals(instance.state) || InstanceState.RUNNING.name().equals(instance.state)
+          || InstanceState.STOPPING.name().equals(instance.state)) {
+        database.instances().transition(instance.id, InstanceState.STOPPED.name(), null, System.currentTimeMillis(),
+            Arrays.asList(InstanceState.STARTING.name(), InstanceState.RUNNING.name(), InstanceState.STOPPING.name()));
+      }
+    }
+  }
+
   public synchronized InstanceEntity require(String id) {
     InstanceEntity instance = database.instances().find(id);
     if (instance == null) throw new IllegalArgumentException("Unknown instance");

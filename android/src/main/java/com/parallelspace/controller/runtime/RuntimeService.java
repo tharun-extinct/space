@@ -15,6 +15,10 @@ public final class RuntimeService extends Service {
     super.onCreate();
     database = Room.databaseBuilder(getApplicationContext(), RuntimeDatabase.class, "runtime.db").build();
     repository = new RuntimeRepository(getApplicationContext(), database);
+    // Runtime slots cannot be trusted after their coordinator was reclaimed.
+    stopService(new Intent(this, VirtualSlot0Service.class));
+    stopService(new Intent(this, VirtualSlot1Service.class));
+    repository.reconcileAfterRuntimeRestart();
   }
 
   private final IRuntimeService.Stub binder = new IRuntimeService.Stub() {
@@ -24,7 +28,9 @@ public final class RuntimeService extends Service {
     @Override public void startInstance(String instanceId) {
       InstanceEntity instance = repository.reserveStart(instanceId);
       Class<?> slotService = instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class;
-      Intent intent = new Intent(RuntimeService.this, slotService).putExtra("instance_id", instance.id);
+      Intent intent = new Intent(RuntimeService.this, slotService)
+          .putExtra("instance_id", instance.id)
+          .putExtra("package_name", instance.packageName);
       ComponentName started = startService(intent);
       if (started == null) throw new IllegalStateException("Could not start runtime slot");
       database.instances().transition(instance.id, InstanceState.RUNNING.name(), instance.slot, System.currentTimeMillis(),

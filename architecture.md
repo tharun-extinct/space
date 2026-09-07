@@ -40,7 +40,7 @@ The only supported conceptual native operations are `createRuntime`, `startInsta
 
 ### Security and distribution
 
-Private instance storage is protected by the host app sandbox and keys are held in Android Keystore. Compatibility manifests and remote configuration are signed. The backend may distribute rules and licence state but is never required to launch an already-authorized local instance. It must never supply DEX or native executable code for execution.
+Private instance storage is protected by the host app sandbox and keys are held in Android Keystore. This phase is local-only: it has no login, licensing backend, telemetry upload, remote configuration, or server-side logging. A future backend may distribute signed compatibility rules and licence state, but it must never be required to launch an already-authorized local instance and must never supply DEX or native executable code for execution.
 
 ## Initial support boundary
 

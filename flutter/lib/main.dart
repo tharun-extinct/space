@@ -7,22 +7,28 @@ void main() => runApp(const ProviderScope(child: ParallelSpaceApp()));
 
 class ParallelSpaceApp extends StatelessWidget {
   const ParallelSpaceApp({super.key});
+
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Parallel Verse',
-    home: Scaffold(
-      appBar: AppBar(title: const Text('Instances')),
-      body: const _InstanceList(),
-    ),
-  );
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Parallel Verse',
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Instances')),
+        body: const _InstanceList(),
+      ),
+    );
+  }
 }
 
 class _InstanceList extends ConsumerWidget {
   const _InstanceList();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final instances = ref.watch(instancesProvider);
-    if (instances.isEmpty) return const Center(child: Text('No instances yet'));
+    if (instances.isEmpty) {
+      return const Center(child: Text('No instances yet'));
+    }
     return ListView(
       children: [
         for (final instance in instances) ListTile(title: Text(instance)),

@@ -19,7 +19,12 @@ android {
             }
         }
     }
-    buildFeatures { aidl true }
+    buildFeatures { aidl = true }
+    sourceSets {
+        main {
+            aidl.srcDirs = ["src/main/aidl"]
+        }
+    }
     externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
 
     def releaseStoreFile = System.getenv("RELEASE_STORE_FILE")

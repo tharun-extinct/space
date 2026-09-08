@@ -6,7 +6,7 @@ A Flutter controller can create and observe instance records through typed Andro
 
 ## Current verified status
 
-**Partial (2026-09-08).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and manually dispatched release-APK generation. No workflow run has yet verified the changes, and Gradle has not been run locally by design.
+**Partial (2026-09-09).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and manually dispatched, main-only debug-signed test APK publication. No successful publication workflow run has yet verified the path, and Gradle has not been run locally by design.
 
 ## Architecture dependencies
 
@@ -37,7 +37,7 @@ None yet.
 - `android`: Java controller, AIDL service, Room repository, slot services, native API.
 - `android/src/test`: Java state-transition unit tests.
 - `.github/workflows/verify.yml`: authoritative Flutter and Android verification.
-- `.github/workflows/release-apk.yml`: manually dispatched APK build; it signs only when all configured repository signing secrets are present.
+- `.github/workflows/release-apk.yml`: manually dispatched main-branch test publisher; it derives a unique `v…-test.<run>.<attempt>` tag from Android `versionName` and attaches a debug-signed APK to a GitHub prerelease without repository signing secrets.
 
 ## Acceptance criteria
 
@@ -48,7 +48,7 @@ None yet.
 - [x] Instance metadata is persisted before runtime slot assignment.
 - [x] Slot allocation is bounded and has unit coverage.
 - [x] CI defines Flutter and Android verification jobs.
-- [x] CI can build and retain a manually dispatched release APK artifact without running Gradle locally.
+- [x] CI defines a main-only workflow that builds an installable test APK, creates a unique test tag, retains an Actions artifact, and publishes a GitHub prerelease.
 - [ ] The project builds on Android and Flutter toolchains.
 - [ ] Runtime recovery and storage isolation have automated tests.
 - [ ] An allowlisted target application completes compatibility validation.
@@ -57,5 +57,6 @@ None yet.
 
 - Generate Pigeon Java/Dart bindings using the Flutter toolchain.
 - Add the actual virtualization framework only after defining legal and technical compatibility requirements.
-- Add the four release-signing secrets before distributing a production APK; unsigned artifacts are CI-only outputs.
+- Replace debug signing with durable release signing before production distribution; debug builds from different CI runs may not update one another in place.
+- Verify the first test tag and GitHub prerelease publication through GitHub Actions.
 - Configure crash reporting and device-fleet testing.

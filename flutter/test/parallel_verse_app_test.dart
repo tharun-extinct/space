@@ -1,14 +1,37 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:parallel_verse_controller/main.dart';
 
-void main() {
-  testWidgets('shows the empty instance state', (tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(child: parallelverseApp()),
-    );
+class FakeRuntimeClient implements RuntimeClient {
+  @override
+  Future<CloneInstance> createInstance(InstalledApp app) {
+    throw UnimplementedError();
+  }
 
-    expect(find.text('Instances'), findsOneWidget);
-    expect(find.text('No instances yet'), findsOneWidget);
-  });
+  @override
+  Future<List<InstalledApp>> listInstalledApps() async => const [];
+
+  @override
+  Future<List<CloneInstance>> listInstances() async => const [];
+}
+
+void main() {
+  testWidgets(
+    'offers app selection when there are no instances',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            runtimeClientProvider.overrideWithValue(FakeRuntimeClient()),
+          ],
+          child: const ParallelVerseApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Parallel Verse'), findsOneWidget);
+      expect(find.text('No cloned apps yet'), findsOneWidget);
+      expect(find.text('Choose an app'), findsOneWidget);
+    },
+  );
 }

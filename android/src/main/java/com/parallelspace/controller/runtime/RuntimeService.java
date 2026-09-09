@@ -3,6 +3,7 @@ package com.parallelverse.controller.runtime;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
 import androidx.room.Room;
 
@@ -10,20 +11,34 @@ import androidx.room.Room;
 public final class RuntimeService extends Service {
   private RuntimeDatabase database;
   private RuntimeRepository repository;
+  private java.util.concurrent.ExecutorService maintenanceExecutor;
 
   @Override public void onCreate() {
     super.onCreate();
     database = Room.databaseBuilder(getApplicationContext(), RuntimeDatabase.class, "runtime.db").build();
     repository = new RuntimeRepository(getApplicationContext(), database);
+    maintenanceExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     // Runtime slots cannot be trusted after their coordinator was reclaimed.
     stopService(new Intent(this, VirtualSlot0Service.class));
     stopService(new Intent(this, VirtualSlot1Service.class));
-    repository.reconcileAfterRuntimeRestart();
+    maintenanceExecutor.execute(repository::reconcileAfterRuntimeRestart);
   }
 
   private final IRuntimeService.Stub binder = new IRuntimeService.Stub() {
     @Override public String createInstance(String packageName, String displayName) {
       return repository.create(packageName, displayName, isInstalledPackage(packageName)).id;
+    }
+    @Override public java.util.List<Bundle> listInstances() {
+      java.util.List<Bundle> result = new java.util.ArrayList<>();
+      for (InstanceEntity instance : repository.all()) {
+        Bundle item = new Bundle();
+        item.putString("id", instance.id);
+        item.putString("packageName", instance.packageName);
+        item.putString("displayName", instance.displayName);
+        item.putString("state", instance.state);
+        result.add(item);
+      }
+      return result;
     }
     @Override public void startInstance(String instanceId) {
       InstanceEntity instance = repository.reserveStart(instanceId);
@@ -54,4 +69,10 @@ public final class RuntimeService extends Service {
     catch (android.content.pm.PackageManager.NameNotFoundException ignored) { return false; }
   }
   @Override public IBinder onBind(Intent intent) { return binder; }
+
+  @Override public void onDestroy() {
+    maintenanceExecutor.shutdown();
+    database.close();
+    super.onDestroy();
+  }
 }

@@ -64,6 +64,8 @@ abstract class RuntimeClient {
   Future<List<CloneInstance>> listInstances();
 
   Future<CloneInstance> createInstance(InstalledApp app);
+
+  Future<void> openInstance(CloneInstance instance);
 }
 
 class AndroidRuntimeClient implements RuntimeClient {
@@ -100,6 +102,14 @@ class AndroidRuntimeClient implements RuntimeClient {
     );
     return CloneInstance.fromMap(result!);
   }
+
+  @override
+  Future<void> openInstance(CloneInstance instance) {
+    return _channel.invokeMethod<void>(
+      'openInstance',
+      <String, String>{'instanceId': instance.id},
+    );
+  }
 }
 
 final runtimeClientProvider = Provider<RuntimeClient>(
@@ -112,6 +122,21 @@ final instancesProvider = FutureProvider<List<CloneInstance>>(
 
 class InstancesPage extends ConsumerWidget {
   const InstancesPage({super.key});
+
+  Future<void> _openInstance(
+    BuildContext context,
+    WidgetRef ref,
+    CloneInstance instance,
+  ) async {
+    try {
+      await ref.read(runtimeClientProvider).openInstance(instance);
+    } on PlatformException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message ?? 'Could not open this app.')),
+      );
+    }
+  }
 
   Future<void> _openAppPicker(BuildContext context, WidgetRef ref) async {
     final client = ref.read(runtimeClientProvider);
@@ -149,10 +174,15 @@ class InstancesPage extends ConsumerWidget {
                   final instance = items[index];
                   return Card(
                     child: ListTile(
+                      onTap: () => _openInstance(context, ref, instance),
                       leading: const CircleAvatar(child: Icon(Icons.apps)),
                       title: Text(instance.displayName),
                       subtitle: Text(instance.packageName),
-                      trailing: Text(instance.state.toLowerCase()),
+                      trailing: IconButton(
+                        tooltip: 'Open ${instance.displayName}',
+                        onPressed: () => _openInstance(context, ref, instance),
+                        icon: const Icon(Icons.play_arrow),
+                      ),
                     ),
                   );
                 },

@@ -64,6 +64,17 @@ public final class MainActivity extends FlutterActivity {
               }
               withRuntime(result, () -> result.success(createInstance(packageName, displayName)));
               break;
+            case "openInstance":
+              String instanceId = call.argument("instanceId");
+              if (instanceId == null || instanceId.isBlank()) {
+                result.error("invalid_arguments", "The app instance is missing.", null);
+                return;
+              }
+              withRuntime(result, () -> {
+                openInstance(instanceId);
+                result.success(null);
+              });
+              break;
             default:
               result.notImplemented();
           }
@@ -102,6 +113,34 @@ public final class MainActivity extends FlutterActivity {
       if (id.equals(item.getString("id"))) return bundleToMap(item);
     }
     throw new IllegalStateException("The instance was created but could not be loaded.");
+  }
+
+  /**
+   * Opens the source application's launcher as an explicit interim capability.
+   * The compatibility runtime does not yet load APK components, so this must not
+   * be represented as isolated cloned execution.
+   */
+  private void openInstance(String instanceId) throws Exception {
+    Bundle instance = null;
+    for (Bundle item : runtimeService.listInstances()) {
+      if (instanceId.equals(item.getString("id"))) {
+        instance = item;
+        break;
+      }
+    }
+    if (instance == null) throw new IllegalArgumentException("This app instance no longer exists.");
+    if (!"READY".equals(instance.getString("state"))
+        && !"STOPPED".equals(instance.getString("state"))) {
+      throw new IllegalStateException("This app instance is not ready to open.");
+    }
+
+    String packageName = instance.getString("packageName");
+    Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
+    if (launchIntent == null) {
+      throw new IllegalStateException("The selected app is no longer installed or has no launcher activity.");
+    }
+    launchIntent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+    startActivity(launchIntent);
   }
 
   private Map<String, Object> bundleToMap(Bundle item) {

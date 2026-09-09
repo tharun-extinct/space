@@ -1,64 +1,66 @@
-name: Release APK
+name: Android Test Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 concurrency:
-  group: release-apk
+  group: android-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish-release-apk:
-    name: Publish test APK prerelease
+  release:
+    name: Build and publish test APK
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
-          distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+          distribution: temurin
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: '8.10.2'
-      - name: Resolve release version
-        id: version
-        run: |
-          version_name="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]+"([^"]+)".*/\1/p' android/build.gradle)"
-          if ! [[ "$version_name" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::android/build.gradle contains an invalid versionName: $version_name"
-            exit 1
-          fi
-          release_tag="v$version_name-test.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
-          if git show-ref --tags --verify --quiet "refs/tags/$release_tag"; then
-            echo "::error::Tag $release_tag already exists. Start a new workflow run."
-            exit 1
-          fi
-          echo "version=$version_name" >> "$GITHUB_OUTPUT"
-          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+
       - name: Test and build debug-signed APK
         run: gradle :android:testDebugUnitTest :android:assembleDebug --stacktrace
-      - name: Prepare test asset
+
+      - name: Prepare release asset
         run: |
           mkdir -p dist
-          cp android/build/outputs/apk/debug/android-debug.apk "dist/parallel-verse-${{ steps.version.outputs.version }}-test-arm64-v8a.apk"
-      - uses: actions/upload-artifact@v4
+          cp android/build/outputs/apk/debug/android-debug.apk "dist/parallel-verse-test-${{ github.run_number }}-arm64-v8a.apk"
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: parallel-verse-${{ steps.version.outputs.tag }}
+          name: parallel-verse-test-${{ github.run_number }}
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 14
+
       - name: Create tag and publish GitHub prerelease
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          name: "Parallel Verse Test Build #${{ github.run_number }}"
+          tag_name: test-release-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          body: Testing-only debug build. It is not production signed; installing a later CI build may require uninstalling this one first.
+          files: dist/*.apk
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${{ steps.version.outputs.tag }}" dist/*.apk \
-            --target "$GITHUB_SHA" \
-            --title "Parallel Verse test ${{ steps.version.outputs.tag }}" \
-            --prerelease \
-            --notes "Testing-only debug build. It is not production signed; installing a later CI build may require uninstalling this one first."
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

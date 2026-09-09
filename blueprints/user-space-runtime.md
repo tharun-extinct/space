@@ -6,7 +6,7 @@ A Flutter controller can create and observe instance records through typed Andro
 
 ## Current verified status
 
-**Partial (2026-09-09).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and manually dispatched, main-only debug-signed test APK publication. No successful publication workflow run has yet verified the path, and Gradle has not been run locally by design.
+**Partial (2026-09-09).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and automatic main-branch debug-signed test APK publication. No successful publication workflow run has yet verified the path, and Gradle has not been run locally by design.
 
 ## Architecture dependencies
 
@@ -36,8 +36,8 @@ None yet.
 - `flutter`: Riverpod UI and Pigeon schema.
 - `android`: Java controller, AIDL service, Room repository, slot services, native API.
 - `android/src/test`: Java state-transition unit tests.
-- `.github/workflows/verify.yml`: authoritative Flutter and Android verification.
-- `.github/workflows/release-apk.yml`: manually dispatched main-branch test publisher; it derives a unique `v…-test.<run>.<attempt>` tag from Android `versionName` and attaches a debug-signed APK to a GitHub prerelease without repository signing secrets.
+- `.github/workflows/verify.yml`: authoritative Flutter and Android verification; all third-party actions are pinned to reviewed immutable commit SHAs.
+- `.github/workflows/release-apk.yml`: main-branch push and manual test publisher; it creates a unique `test-release-<run>` tag and attaches a debug-signed APK to a GitHub prerelease without repository signing secrets. All third-party actions are pinned to reviewed immutable commit SHAs.
 
 ## Acceptance criteria
 
@@ -48,7 +48,8 @@ None yet.
 - [x] Instance metadata is persisted before runtime slot assignment.
 - [x] Slot allocation is bounded and has unit coverage.
 - [x] CI defines Flutter and Android verification jobs.
-- [x] CI defines a main-only workflow that builds an installable test APK, creates a unique test tag, retains an Actions artifact, and publishes a GitHub prerelease.
+- [x] Every third-party GitHub Action is pinned to an immutable full commit SHA with its stable release version documented inline.
+- [x] CI defines a main-only push workflow that tests and builds an installable test APK, creates a unique test tag, retains an Actions artifact, and publishes a GitHub prerelease.
 - [ ] The project builds on Android and Flutter toolchains.
 - [ ] Runtime recovery and storage isolation have automated tests.
 - [ ] An allowlisted target application completes compatibility validation.

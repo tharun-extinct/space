@@ -115,10 +115,10 @@ public final class MainActivity extends FlutterActivity {
     throw new IllegalStateException("The instance was created but could not be loaded.");
   }
 
-  /**
-   * Opens the source application's launcher as an explicit interim capability.
-   * The compatibility runtime does not yet load APK components, so this must not
-   * be represented as isolated cloned execution.
+  /** Starts only a genuine Parallel Verse runtime instance.
+   *
+   * <p>Never fall back to PackageManager#getLaunchIntentForPackage here. That opens the
+   * device-installed application under its normal UID and is not clone execution.</p>
    */
   private void openInstance(String instanceId) throws Exception {
     Bundle instance = null;
@@ -134,13 +134,8 @@ public final class MainActivity extends FlutterActivity {
       throw new IllegalStateException("This app instance is not ready to open.");
     }
 
-    String packageName = instance.getString("packageName");
-    Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
-    if (launchIntent == null) {
-      throw new IllegalStateException("The selected app is no longer installed or has no launcher activity.");
-    }
-    launchIntent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-    startActivity(launchIntent);
+    throw new UnsupportedOperationException(
+        "Container execution is not available in this build. The normal installed app was not opened.");
   }
 
   private Map<String, Object> bundleToMap(Bundle item) {

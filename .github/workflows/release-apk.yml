@@ -1,3 +1,12 @@
+# Parallel Verse CI notes (issues encountered while stabilizing this workflow):
+# - GitHub Releases require `contents: write` and the publish job must run on `main`.
+# - Keystore secrets are intentionally not required yet; this produces a debug-signed test APK.
+# - Flutter, JDK, Gradle, AGP, and Kotlin versions must remain compatible with one another.
+# - The Android module must apply Flutter's Gradle plugin or the app can build but show a white screen.
+# - Disabling code shrinking also requires disabling resource shrinking (`shrinkResources false`).
+# - Dart formatting and Flutter tests fail CI when files are unformatted or the test directory is absent.
+# - Third-party actions use immutable commit SHAs; editor resolution warnings were not build failures.
+
 name: Android Test Release
 
 on:

@@ -1,4 +1,4 @@
-package com.parallelspace.controller;
+package com.parallelverse.controller;
 
 import static org.junit.Assert.assertTrue;
 

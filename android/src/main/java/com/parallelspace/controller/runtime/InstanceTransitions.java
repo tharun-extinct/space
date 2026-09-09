@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 /** Pure transition guard, shared by service and recovery code. */
 public final class InstanceTransitions {

@@ -23,7 +23,7 @@ Runtime* from_handle(jlong handle) { return reinterpret_cast<Runtime*>(handle); 
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_createRuntime(
+Java_com_parallelverse_controller_runtime_NativeRuntime_createRuntime(
     JNIEnv* env, jobject, jstring storage_root) {
   auto* runtime = new Runtime();
   runtime->storage_root = to_string(env, storage_root);
@@ -31,7 +31,7 @@ Java_com_parallelspace_controller_runtime_NativeRuntime_createRuntime(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_mountInstanceStorage(
+Java_com_parallelverse_controller_runtime_NativeRuntime_mountInstanceStorage(
     JNIEnv* env, jobject, jlong handle, jstring instance_id, jstring storage_path) {
   Runtime* runtime = from_handle(handle);
   if (runtime == nullptr) return JNI_FALSE;
@@ -41,7 +41,7 @@ Java_com_parallelspace_controller_runtime_NativeRuntime_mountInstanceStorage(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_startInstance(
+Java_com_parallelverse_controller_runtime_NativeRuntime_startInstance(
     JNIEnv* env, jobject, jlong handle, jstring instance_id, jstring) {
   Runtime* runtime = from_handle(handle);
   if (runtime == nullptr) return;
@@ -50,7 +50,7 @@ Java_com_parallelspace_controller_runtime_NativeRuntime_startInstance(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_stopInstance(
+Java_com_parallelverse_controller_runtime_NativeRuntime_stopInstance(
     JNIEnv* env, jobject, jlong handle, jstring instance_id) {
   Runtime* runtime = from_handle(handle);
   if (runtime == nullptr) return;
@@ -59,7 +59,7 @@ Java_com_parallelspace_controller_runtime_NativeRuntime_stopInstance(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_getRuntimeStatus(
+Java_com_parallelverse_controller_runtime_NativeRuntime_getRuntimeStatus(
     JNIEnv* env, jobject, jlong handle, jstring instance_id) {
   Runtime* runtime = from_handle(handle);
   if (runtime == nullptr) return env->NewStringUTF("destroyed");
@@ -69,7 +69,7 @@ Java_com_parallelspace_controller_runtime_NativeRuntime_getRuntimeStatus(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_parallelspace_controller_runtime_NativeRuntime_destroyRuntime(
+Java_com_parallelverse_controller_runtime_NativeRuntime_destroyRuntime(
     JNIEnv*, jobject, jlong handle) {
   delete from_handle(handle);
 }

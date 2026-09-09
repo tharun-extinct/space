@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;

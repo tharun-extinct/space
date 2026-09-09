@@ -4,8 +4,8 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     dartOut: 'lib/generated/runtime_api.g.dart',
     javaOut:
-        '../android/src/main/java/com/parallelspace/controller/pigeon/RuntimeApi.java',
-    javaOptions: JavaOptions(package: 'com.parallelspace.controller.pigeon'),
+        '../android/src/main/java/com/parallelverse/controller/pigeon/RuntimeApi.java',
+    javaOptions: JavaOptions(package: 'com.parallelverse.controller.pigeon'),
   ),
 )
 class InstanceSummary {

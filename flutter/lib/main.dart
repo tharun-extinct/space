@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final instancesProvider = StateProvider<List<String>>((_) => const []);
 
-void main() => runApp(const ProviderScope(child: ParallelSpaceApp()));
+void main() => runApp(const ProviderScope(child: parallelverseApp()));
 
-class ParallelSpaceApp extends StatelessWidget {
-  const ParallelSpaceApp({super.key});
+class parallelverseApp extends StatelessWidget {
+  const parallelverseApp({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 import android.app.Service;
 import android.content.ComponentName;

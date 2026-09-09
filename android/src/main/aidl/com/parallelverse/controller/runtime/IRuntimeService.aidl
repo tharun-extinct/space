@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 /** Internal, typed IPC. Only the host application's non-exported service may bind it. */
 interface IRuntimeService {

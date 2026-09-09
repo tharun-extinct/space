@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;

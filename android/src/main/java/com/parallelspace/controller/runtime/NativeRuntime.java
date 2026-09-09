@@ -1,4 +1,4 @@
-package com.parallelspace.controller.runtime;
+package com.parallelverse.controller.runtime;
 
 /** Coarse, versioned JNI boundary. Android framework routing stays in Java. */
 public final class NativeRuntime {

@@ -15,7 +15,7 @@ kotlin {
 }
 
 android {
-    namespace "com.parallelspace.controller"
+    namespace "com.parallelverse.controller"
     compileSdk 35
     ndkVersion "27.2.12479018"
 
@@ -25,7 +25,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.parallelspace.controller"
+        applicationId "com.parallelverse.controller"
         minSdk 26
         targetSdk 35
         versionCode 1

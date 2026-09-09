@@ -5,7 +5,7 @@ import 'package:parallel_verse_controller/main.dart';
 void main() {
   testWidgets('shows the empty instance state', (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(child: ParallelSpaceApp()),
+      const ProviderScope(child: parallelverseApp()),
     );
 
     expect(find.text('Instances'), findsOneWidget);

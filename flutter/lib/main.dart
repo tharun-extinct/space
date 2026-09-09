@@ -144,7 +144,7 @@ class InstancesPage extends ConsumerWidget {
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final instance = items[index];
                   return Card(
@@ -157,6 +157,7 @@ class InstancesPage extends ConsumerWidget {
                   );
                 },
               ),
+      ),
       floatingActionButton: instances.asData?.value.isNotEmpty == true
           ? FloatingActionButton.extended(
               onPressed: () => _openAppPicker(context, ref),

@@ -1,4 +1,28 @@
-pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+pluginManagement {
+    def flutterSdkPath = {
+        def localProperties = new Properties()
+        def localPropertiesFile = file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.withInputStream { localProperties.load(it) }
+        }
+
+        def sdkPath = localProperties.getProperty("flutter.sdk") ?: System.getenv("FLUTTER_ROOT")
+        assert sdkPath != null : "Flutter SDK not found. Set flutter.sdk in local.properties or FLUTTER_ROOT."
+        return sdkPath
+    }()
+
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    String storageUrl = System.env.FLUTTER_STORAGE_BASE_URL ?: "https://storage.googleapis.com"
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("$storageUrl/download.flutter.io") }
+    }
+}
 rootProject.name = "parallel-verse"
 include(":android")

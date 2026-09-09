@@ -6,7 +6,7 @@ A Flutter controller can create and observe instance records through typed Andro
 
 ## Current verified status
 
-**Partial (2026-09-09).** The repository has a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and automatic main-branch debug-signed test APK publication. No successful publication workflow run has yet verified the path, and Gradle has not been run locally by design.
+**Partial (2026-09-09).** The repository has a Flutter launcher UI integrated into the Android host through `FlutterActivity`, plus a Java runtime control plane with durable instance records, installed-package eligibility checks, bounded slot allocation, slot services, a native lifecycle handle, and unit tests for transition/slot decisions. GitHub Actions is configured for Flutter analysis/tests, Android build/tests, and automatic main-branch debug-signed test APK publication. No successful publication workflow run has yet verified the integrated APK path, and Gradle has not been run locally by design.
 
 ## Architecture dependencies
 
@@ -33,15 +33,16 @@ None yet.
 
 ## Relevant implementation and tests
 
-- `flutter`: Riverpod UI and Pigeon schema.
-- `android`: Java controller, AIDL service, Room repository, slot services, native API.
-- `android/src/test`: Java state-transition unit tests.
+- `flutter`: Riverpod UI, widget test, and Pigeon schema.
+- `android`: Flutter launcher host, Java controller, AIDL service, Room repository, slot services, and native API.
+- `android/src/test`: Java launcher-wiring, state-transition, and slot-allocation unit tests.
 - `.github/workflows/verify.yml`: authoritative Flutter and Android verification; all third-party actions are pinned to reviewed immutable commit SHAs.
 - `.github/workflows/release-apk.yml`: main-branch push and manual test publisher; it creates a unique `test-release-<run>` tag and attaches a debug-signed APK to a GitHub prerelease without repository signing secrets. All third-party actions are pinned to reviewed immutable commit SHAs.
 
 ## Acceptance criteria
 
 - [x] Flutter is not initialized by the declared runtime process.
+- [x] The Android launcher hosts the Flutter UI while runtime and slot services remain in separate Java-only processes.
 - [x] Runtime control uses an explicit AIDL API.
 - [x] Metadata has one authoritative Java-owned Room schema.
 - [x] The native API is small and versioned.

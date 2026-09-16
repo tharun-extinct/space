@@ -149,12 +149,58 @@ start building it iteratively
 
 
 
-Now the workflow builds in Action is successful. I want you to add comments on top of the workflow file - about what the conflicts we have faced briefly
+Add comments on top of the workflow file - about what the conflicts we have faced briefly
 
 
-use up-to-date checkout with stable commit hash (to prevent chain attacks) for Github workflows
+use up-to-date checkout with stable commit hash (to prevent chain attacks) in Github Actions workflows
 
 
 for now skip the signing with keystore, first we build the app and test it and then go for scaling
 
 --------
+
+
+It didn't cover one perspective .i.e. Tech Stach — why we chose that particular stack for this project
+
+
+
+
+# BLUEPRINT
+
+A "blueprint" is a design document for a core module/component in an system application.
+blueprint refers to independently routable work units or areas of concern that can be assigned, delegated, and documented separately.
+
+
+Create *BLUEPRINT* only if all three are true:
+1. **Hard to reverse**
+2. **Non-Obvious Logic**
+3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
+
+If a decision is easy to reverse, skip it: you'll just reverse it. If it's not surprising, nobody will wonder why. If there was no real alternative, there's nothing to record beyond "we did the obvious thing."
+
+
+
+
+Example: Choosing which core database to use, requires a *BLUEPRINT* because migrating data later is a massive project and time consuming. Choosing the color of a button does not, because you can change it in five seconds.
+
+
+If a new developer (or even you, a year from now) looks at the code and thinks, "This is a really weird way to do this, why didn't they just do X?", then you need a blueprint to provide the missing context. If your solution perfectly follows standard industry practices, it speaks for itself and doesn't need a document.
+
+
+If there was only one logical way to build the feature, writing a document just to say "we did the obvious thing" is a waste of time.
+
+
+
+What problem does the application solve?
+What invariants must always remain true?
+What happens in difficult edge cases?
+
+
+
+
+# An ADR 
+ It only preserves a decision after the team has understood the underlying problem and evaluated the trade-offs.
+
+
+The application needs immediate UI feedback, but backend confirmation is asynchronous.
+

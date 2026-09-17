@@ -167,8 +167,7 @@ It didn't cover one perspective .i.e. Tech Stach — why we chose that particula
 
 # BLUEPRINT
 
-A "blueprint" is a design document for a core module/component in an system application.
-blueprint refers to independently routable work units or areas of concern that can be assigned, delegated, and documented separately.
+A *BLUEPRINT* is a design document for a core module/component in an system application and an independently routable work units or areas of concern that can be assigned, delegated, and documented separately.
 
 
 Create *BLUEPRINT* only if all three are true:
@@ -194,6 +193,18 @@ If there was only one logical way to build the feature, writing a document just 
 What problem does the application solve?
 What invariants must always remain true?
 What happens in difficult edge cases?
+
+
+
+
+
+The criteria were:
+
+
+
+Separate shared and feature-specific knowledge
+
+
 
 
 

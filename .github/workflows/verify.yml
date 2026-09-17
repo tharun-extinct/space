@@ -40,9 +40,22 @@ jobs:
         with:
           flutter-version: '3.47.2'
           channel: stable
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: '8.14.5'
       - run: flutter pub get
         working-directory: flutter
+      - name: Install pinned Android NDK
+        run: |
+          sdkmanager "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.89.0 --profile minimal --target aarch64-linux-android
+          cargo +1.89.0 install cargo-ndk --version 4.1.2 --locked
+      - name: Test Rust runtime core
+        run: cargo +1.89.0 test --manifest-path android/runtime-core/Cargo.toml
+      - name: Build Rust runtime core for ARM64 Android
+        run: cargo +1.89.0 ndk -t arm64-v8a -o android/runtime-core/jniLibs build --release --manifest-path android/runtime-core/Cargo.toml
       - run: gradle test assembleDebug --stacktrace

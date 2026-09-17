@@ -55,6 +55,22 @@ jobs:
         working-directory: flutter
         run: flutter pub get
 
+      - name: Install pinned Android NDK
+        run: |
+          sdkmanager "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.89.0 --profile minimal --target aarch64-linux-android
+          cargo +1.89.0 install cargo-ndk --version 4.1.2 --locked
+
+      - name: Test Rust runtime core
+        run: cargo +1.89.0 test --manifest-path android/runtime-core/Cargo.toml
+
+      - name: Build Rust runtime core for ARM64 Android
+        run: cargo +1.89.0 ndk -t arm64-v8a -o android/runtime-core/jniLibs build --release --manifest-path android/runtime-core/Cargo.toml
+
       - name: Test and build debug-signed APK
         run: gradle :android:testDebugUnitTest :android:assembleDebug --stacktrace
 

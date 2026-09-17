@@ -12,7 +12,8 @@ public class VirtualSlotService extends Service {
   @Override public void onCreate() {
     super.onCreate();
     nativeRuntime = new NativeRuntime();
-    nativeHandle = nativeRuntime.createRuntime(getFilesDir().getAbsolutePath());
+    java.io.File runtimeRoot = new java.io.File(getFilesDir(), "instances");
+    nativeHandle = nativeRuntime.createRuntime(runtimeRoot.getAbsolutePath());
   }
 
   @Override public IBinder onBind(Intent intent) { return null; }
@@ -21,9 +22,16 @@ public class VirtualSlotService extends Service {
     String packageName = intent == null ? null : intent.getStringExtra("package_name");
     if (instanceId == null || packageName == null) return START_NOT_STICKY;
     String storagePath = new java.io.File(new java.io.File(getFilesDir(), "instances"), instanceId).getAbsolutePath();
-    if (!nativeRuntime.mountInstanceStorage(nativeHandle, instanceId, storagePath)) return START_NOT_STICKY;
-    // This initializes only the native compatibility slot; it does not load an APK.
-    nativeRuntime.startInstance(nativeHandle, instanceId, packageName);
+    try {
+      if (!nativeRuntime.mountInstanceStorage(nativeHandle, instanceId, storagePath)) {
+        stopSelf(startId);
+        return START_NOT_STICKY;
+      }
+      // This initializes only the native compatibility slot; it does not load an APK.
+      nativeRuntime.startInstance(nativeHandle, instanceId, packageName);
+    } catch (IllegalArgumentException | IllegalStateException error) {
+      stopSelf(startId);
+    }
     return START_NOT_STICKY;
   }
 

@@ -42,9 +42,9 @@ android {
     sourceSets {
         main {
             aidl.srcDirs = ["src/main/aidl"]
+            jniLibs.srcDirs = ["runtime-core/jniLibs"]
         }
     }
-    externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt" } }
 
     def releaseStoreFile = System.getenv("RELEASE_STORE_FILE")
     def releaseStorePassword = System.getenv("RELEASE_STORE_PASSWORD")

@@ -1,0 +1,12 @@
+[package]
+name = "parallel-runtime"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+
+[lib]
+name = "parallel_runtime"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+jni = { version = "0.21.1", default-features = false }

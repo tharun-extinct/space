@@ -23,6 +23,15 @@ A Flutter controller creates and observes instance records through typed Android
 - A slot may report native bookkeeping status, but Java must not translate that alone into a claim that a cloned application is executing.
 - This phase has no backend dependency: login, licensing, remote manifests, telemetry, and server-side logging remain deferred.
 
+## Incremental delivery plan
+
+1. **RuntimeCore v1 — Partial:** build and package the Rust state/storage core, enforce its JNI API version, and verify containment and transition tests in CI.
+2. **Virtual package catalog — Planned:** persist source provenance, signer digest, package/version metadata, launcher component, and an explicit supported/blocked decision in Java-owned storage.
+3. **Logical virtual users — Partial:** complete crash-recoverable `instanceId` to storage namespace and slot mapping, with Android tests for process death and storage separation.
+4. **Component routing — Planned:** add manifest-declared Java stubs and route activities, services, receivers, and providers only for an allowlisted compatibility target.
+5. **Guest loading — Planned:** validate resources, class loading, DEX, and native-library behavior on one controlled test APK family without downloading executable code.
+6. **Compatibility expansion — Planned:** expand Android/OEM/app coverage only from physical-device evidence and retain controlled failure for protected or unsupported apps.
+
 ## Related blueprints
 
 ### Required

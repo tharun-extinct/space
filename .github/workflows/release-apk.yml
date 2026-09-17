@@ -59,6 +59,7 @@ jobs:
         run: |
           sdkmanager "ndk;27.2.12479018"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          echo "CARGO_NDK_PLATFORM=26" >> "$GITHUB_ENV"
 
       - name: Install pinned Rust toolchain
         run: |

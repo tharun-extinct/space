@@ -8,24 +8,24 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 
 ## Current verified status
 
-**Partial (verified 2026-09-18).** A Rust crate under `android/runtime-core` and CI/build integration are being introduced concurrently. The existing Java `NativeRuntime` contract already exposes six coarse operations and `VirtualSlotService` owns its handle in one slot process. Until CI builds and packages the Rust library and tests exercise the ABI, only the Java-facing contract and slot ownership are verified. RuntimeCore v1 provides state and storage invariants only; it does not install, load, virtualize, or execute target APKs.
+**Partial (verified 2026-09-18).** A Rust crate under `android/runtime-core` and CI/build integration are present. The Java `NativeRuntime` contract exposes six coarse lifecycle/storage operations plus a native API-version query, rejects an observed version mismatch, and is owned by `VirtualSlotService` in one slot process. Until CI builds and packages the Rust library and tests exercise the ABI, the native version check and artifact loading remain unverified. RuntimeCore v1 provides state and storage invariants only; it does not install, load, virtualize, or execute target APKs.
 
 ## Architecture dependencies
 
 - [Component and process model](../architecture.md#component-and-process-model) — the core is subordinate to a Java slot process and cannot own Android component lifecycle.
 - [Instance identity and ownership](../architecture.md#instance-identity-and-ownership) — Java supplies stable instance/logical-user identity; Rust validates its storage namespace.
 - [States and recovery](../architecture.md#states-and-recovery) — native state is process-local evidence and never replaces Room recovery state.
-- [Native runtime boundary](../architecture.md#native-runtime-boundary) — JNI/C ABI operations, handle ownership, containment, and failure rules govern the crate.
+- [Native runtime boundary](../architecture.md#native-runtime-boundary) — JNI ABI operations, handle ownership, containment, and failure rules govern the crate.
 - [Security and distribution](../architecture.md#security-and-distribution) — the core stays inside the host sandbox and cannot download executable code or claim stronger isolation.
 - [Verification boundaries](../architecture.md#verification-boundaries) — Rust unit tests, Android ABI tests, and CI packaging provide different required evidence.
 
 ## Local rules and implications
 
-- RuntimeCore exposes the conceptual operations `createRuntime`, `mountInstanceStorage`, `startInstance`, `stopInstance`, `getRuntimeStatus`, and `destroyRuntime`; its Rust JNI exports must preserve their versioned semantics. RuntimeCore v1 does not expose a separate public C SDK.
+- RuntimeCore exposes `getApiVersion` plus the lifecycle/storage operations `createRuntime`, `mountInstanceStorage`, `startInstance`, `stopInstance`, `getRuntimeStatus`, and `destroyRuntime`; its Rust JNI exports must preserve their versioned semantics. RuntimeCore v1 does not expose a separate public C SDK.
 - Every runtime is represented outside Rust by an opaque handle. Unknown, destroyed, cross-process, and double-destroyed handles fail safely.
 - Identifiers are bounded and validated. Storage paths are canonicalized or equivalently normalized, must remain beneath the Java-selected runtime root, and cannot be rebound while an instance is running.
 - State transitions are deterministic and synchronized. Rust reports transition errors to Java and never independently persists controller state.
-- Rust panics and allocation/encoding failures cannot unwind through the C ABI or JNI.
+- Rust panics and allocation/encoding failures cannot unwind through JNI.
 - The Android artifact targets ARM64 first. Build scripts must not fetch or execute arbitrary runtime code after application installation.
 - A successful native `startInstance` means native bookkeeping reached `running`; it is not evidence of APK execution.
 
@@ -56,7 +56,7 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - [ ] Invalid and destroyed handles fail without crashes, leaks, or undefined behavior.
 - [ ] Traversal, sibling-prefix, absolute-path, symlink, and rebind attempts cannot escape or replace an instance storage root.
 - [ ] Legal state transitions and rejected transitions have deterministic unit coverage.
-- [ ] Panics are contained before the JNI/C ABI boundary and surfaced as stable errors.
+- [ ] Panics are contained before the JNI ABI boundary and surfaced as stable errors.
 - [ ] Java integration tests distinguish native bookkeeping success from actual target-app execution.
 
 ## Remaining gaps and unknowns

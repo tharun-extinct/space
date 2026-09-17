@@ -3,3 +3,4 @@ error.txt
 assets/
 android/runtime-core/target/
 android/runtime-core/jniLibs/**/*.so
+android/runtime-core/Cargo.lock

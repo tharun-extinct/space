@@ -42,7 +42,7 @@ Native runtime state is process-local evidence, not durable controller truth. A 
 
 ### Native runtime boundary
 
-The supported native operations are `createRuntime`, `mountInstanceStorage`, `startInstance`, `stopInstance`, `getRuntimeStatus`, and `destroyRuntime`. The Java JNI class and Rust JNI exports are one versioned ABI; there is no separate public C SDK. Calls use opaque handles and bounded strings or byte buffers; ownership and lifetime remain explicit at the boundary. Panics, invalid handles, malformed identifiers, path escapes, and incompatible API versions must not unwind across JNI or produce undefined behavior.
+The supported native operations are `getApiVersion`, `createRuntime`, `mountInstanceStorage`, `startInstance`, `stopInstance`, `getRuntimeStatus`, and `destroyRuntime`. The Java JNI class and Rust JNI exports are one versioned ABI; there is no separate public C SDK. Java must reject a loaded library whose reported API version differs from its expected version. Calls use opaque handles and bounded strings or byte buffers; ownership and lifetime remain explicit at the boundary. Panics, invalid handles, malformed identifiers, path escapes, and incompatible API versions must not unwind across JNI or produce undefined behavior.
 
 The core accepts only app-private storage roots selected by Java. An instance storage path must resolve beneath its runtime root and cannot be rebound while running. `startInstance` currently means transition of the native bookkeeping state only. It must not be documented as target-APK loading, component virtualization, or successful clone execution until those behaviors exist and have compatibility tests.
 

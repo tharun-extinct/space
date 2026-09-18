@@ -70,4 +70,34 @@ void main() {
 
     expect(runtime.openedInstanceIds, <String>['instance-1']);
   });
+
+  testWidgets(
+    'does not open an instance whose APK import failed',
+    (tester) async {
+      final runtime = FakeRuntimeClient(
+        instances: const <CloneInstance>[
+          CloneInstance(
+            id: 'instance-unsupported',
+            packageName: 'com.example.unsupported',
+            displayName: 'Unsupported',
+            state: 'UNSUPPORTED',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [runtimeClientProvider.overrideWithValue(runtime)],
+          child: const ParallelVerseApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Unsupported'));
+      await tester.pump();
+
+      expect(runtime.openedInstanceIds, isEmpty);
+      expect(find.textContaining('unsupported'), findsOneWidget);
+    },
+  );
 }

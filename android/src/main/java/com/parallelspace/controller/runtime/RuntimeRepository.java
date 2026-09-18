@@ -2,8 +2,8 @@ package com.parallelverse.controller.runtime;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -78,6 +78,21 @@ public final class RuntimeRepository {
     InstanceEntity instance = database.instances().find(id);
     if (instance == null) throw new IllegalArgumentException("Unknown instance");
     return instance;
+  }
+
+  public synchronized VirtualPackageEntity requireVirtualPackage(String instanceId) {
+    VirtualPackageEntity virtualPackage = database.virtualPackages().find(instanceId);
+    if (virtualPackage == null) throw new IllegalStateException("The instance has no imported APK snapshot");
+    return virtualPackage;
+  }
+
+  public synchronized File resolveSnapshotFile(String instanceId, String relativePath) {
+    try {
+      return InstanceStoragePaths.requireOwnedFile(
+          new File(instancesRoot, instanceId), relativePath);
+    } catch (IOException | IllegalArgumentException error) {
+      throw new IllegalStateException("Could not resolve the imported APK snapshot", error);
+    }
   }
 
   public synchronized List<InstanceEntity> all() { return database.instances().all(); }

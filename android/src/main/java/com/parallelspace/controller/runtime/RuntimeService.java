@@ -43,11 +43,17 @@ public final class RuntimeService extends Service {
       return result;
     }
     @Override public void startInstance(String instanceId) {
+      VirtualPackageEntity virtualPackage = repository.requireVirtualPackage(instanceId);
+      java.io.File baseApk = repository.resolveSnapshotFile(
+          instanceId, virtualPackage.baseApkRelativePath);
       InstanceEntity instance = repository.reserveStart(instanceId);
       Class<?> slotService = instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class;
       Intent intent = new Intent(RuntimeService.this, slotService)
           .putExtra("instance_id", instance.id)
-          .putExtra("package_name", instance.packageName);
+          .putExtra("package_name", instance.packageName)
+          .putExtra("base_apk_path", baseApk.getAbsolutePath())
+          .putExtra("launcher_activity", virtualPackage.launcherActivity)
+          .putExtra("signer_sha256", virtualPackage.signerSha256);
       ComponentName started = startService(intent);
       if (started == null) throw new IllegalStateException("Could not start runtime slot");
       database.instances().transition(instance.id, InstanceState.RUNNING.name(), instance.slot, System.currentTimeMillis(),

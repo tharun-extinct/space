@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.ComponentInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -35,10 +36,14 @@ public final class ApkSnapshotImporter {
 
   public VirtualPackageEntity importPackage(String instanceId, String packageName)
       throws PackageManager.NameNotFoundException, IOException {
+    int metadataFlags = PackageManager.GET_ACTIVITIES
+        | PackageManager.GET_SERVICES
+        | PackageManager.GET_RECEIVERS
+        | PackageManager.GET_PROVIDERS;
     int signingFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         ? PackageManager.GET_SIGNING_CERTIFICATES
         : PackageManager.GET_SIGNATURES;
-    PackageInfo packageInfo = packageManager.getPackageInfo(packageName, signingFlag);
+    PackageInfo packageInfo = packageManager.getPackageInfo(packageName, signingFlag | metadataFlags);
     ApplicationInfo applicationInfo = packageInfo.applicationInfo;
     if (applicationInfo == null || applicationInfo.sourceDir == null) {
       throw new IOException("The installed package does not expose a base APK.");
@@ -76,6 +81,10 @@ public final class ApkSnapshotImporter {
         signerDigest(packageInfo),
         "package/base.apk",
         String.join("\n", splitPaths),
+        componentNames(packageInfo.activities),
+        componentNames(packageInfo.services),
+        componentNames(packageInfo.receivers),
+        componentNames(packageInfo.providers),
         System.currentTimeMillis());
   }
 
@@ -114,6 +123,16 @@ public final class ApkSnapshotImporter {
     }
     Collections.sort(digests);
     return String.join(":", digests);
+  }
+
+  private static String componentNames(ComponentInfo[] components) {
+    if (components == null || components.length == 0) return "";
+    List<String> names = new ArrayList<>();
+    for (ComponentInfo component : components) {
+      if (component != null && component.name != null) names.add(component.name);
+    }
+    Collections.sort(names);
+    return String.join("\n", names);
   }
 
   private static void copyAtomically(File source, File destination) throws IOException {

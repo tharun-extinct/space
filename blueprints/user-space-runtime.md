@@ -6,7 +6,7 @@ A Flutter controller creates and observes instance records through typed Android
 
 ## Current verified status
 
-**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services. The UI displays persisted instance state and disables launch for failed imports. Java unit tests cover controller transitions and slot allocation. The slot service invokes a coarse native lifecycle API, but its current `startInstance` call is bookkeeping only and does not yet instantiate or virtualize a target APK's Android components. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
+**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, a declared-component catalog, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services. The UI displays persisted instance state and disables launch for failed imports. Java unit tests cover controller transitions, slot allocation, and imported-path containment. The slot service invokes a coarse native lifecycle API, but its current `startInstance` call is bookkeeping only and does not yet instantiate or virtualize a target APK's Android components. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
 
 ## Architecture dependencies
 
@@ -26,7 +26,7 @@ A Flutter controller creates and observes instance records through typed Android
 ## Incremental delivery plan
 
 1. **RuntimeCore v1 — Partial:** build and package the Rust state/storage core, enforce its JNI API version, and verify containment and transition tests in CI.
-2. **Virtual package catalog — Partial:** base and split APKs are copied into instance-owned storage and Room persists signer digest, package/version metadata, and launcher component. Compatibility rules, re-import after source updates, cleanup, and physical-device verification remain.
+2. **Virtual package catalog — Partial:** base and split APKs are copied into instance-owned storage and Room persists signer digest, package/version metadata, launcher component, and declared component names. Intent filters, compatibility rules, re-import after source updates, cleanup, and physical-device verification remain.
 3. **Logical virtual users — Partial:** complete crash-recoverable `instanceId` to storage namespace and slot mapping, with Android tests for process death and storage separation.
 4. **Component routing — Planned:** add manifest-declared Java stubs and route activities, services, receivers, and providers only for an allowlisted compatibility target.
 5. **Guest loading — Planned:** validate resources, class loading, DEX, and native-library behavior on one controlled test APK family without downloading executable code.
@@ -60,7 +60,7 @@ None.
 - [x] Instance metadata is persisted before runtime slot assignment.
 - [x] Slot allocation is bounded and has unit coverage.
 - [x] Creation passes through persisted `draft` and `installing` states and imports an instance-owned APK snapshot before `ready`.
-- [x] Room records package/version, launcher component, signer digest, and imported APK paths.
+- [x] Room records package/version, launcher and declared components, signer digest, and imported APK paths.
 - [x] CI defines Flutter and Android verification and test-APK publication workflows.
 - [ ] Runtime recovery, process death, and storage separation have instrumentation coverage.
 - [ ] Java and native statuses are reconciled without treating process-local state as durable truth.

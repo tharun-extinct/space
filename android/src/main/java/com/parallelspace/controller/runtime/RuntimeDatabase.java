@@ -13,6 +13,8 @@ public abstract class RuntimeDatabase extends RoomDatabase {
           + "(`instanceId` TEXT NOT NULL, `packageName` TEXT NOT NULL, `versionCode` INTEGER NOT NULL, "
           + "`versionName` TEXT, `launcherActivity` TEXT NOT NULL, `signerSha256` TEXT NOT NULL, "
           + "`baseApkRelativePath` TEXT NOT NULL, `splitApkRelativePaths` TEXT NOT NULL, "
+          + "`activityNames` TEXT NOT NULL, `serviceNames` TEXT NOT NULL, "
+          + "`receiverNames` TEXT NOT NULL, `providerNames` TEXT NOT NULL, "
           + "`importedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`instanceId`))");
     }
   };

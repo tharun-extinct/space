@@ -135,7 +135,8 @@ public final class MainActivity extends FlutterActivity {
     }
 
     throw new UnsupportedOperationException(
-        "Container execution is not available in this build. The normal installed app was not opened.");
+        "The APK snapshot is ready, but Android activity virtualization is not implemented yet. "
+            + "The normal installed app was not opened.");
   }
 
   private Map<String, Object> bundleToMap(Bundle item) {

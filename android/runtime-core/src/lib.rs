@@ -74,7 +74,8 @@ impl Runtime {
     fn start(&mut self, id: &str, package: &str) -> Result<(), String> {
         validate_instance_id(id)?;
         validate_package_descriptor(package)?;
-        let instance = self.instances.get_mut(id).ok_or("instance storage must be mounted before start")?;
+        let instance = self.instances.get_mut(id)
+            .ok_or_else(|| "instance storage must be mounted before start".to_owned())?;
         match instance.state {
             InstanceState::Mounted | InstanceState::Stopped => {
                 instance.state = InstanceState::Running;
@@ -86,7 +87,8 @@ impl Runtime {
 
     fn stop(&mut self, id: &str) -> Result<(), String> {
         validate_instance_id(id)?;
-        let instance = self.instances.get_mut(id).ok_or("unknown instance")?;
+        let instance = self.instances.get_mut(id)
+            .ok_or_else(|| "unknown instance".to_owned())?;
         if instance.state != InstanceState::Running {
             return Err("only a running instance can be stopped".into());
         }
@@ -243,7 +245,13 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_g
 ) -> jstring {
     guard(&mut env, ptr::null_mut(), |env| {
         let id = java_string(env, id)?;
-        let status = with_registry(|runtimes| Ok(runtimes.get(&handle).ok_or("invalid runtime handle")?.status(&id)?.to_owned()))?;
+        let status = with_registry(|runtimes| {
+            Ok(runtimes
+                .get(&handle)
+                .ok_or_else(|| "invalid runtime handle".to_owned())?
+                .status(&id)?
+                .to_owned())
+        })?;
         env.new_string(status).map(|value| value.into_raw()).map_err(|e| format!("cannot allocate status string: {e}"))
     })
 }

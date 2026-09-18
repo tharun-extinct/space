@@ -20,16 +20,21 @@ public class VirtualSlotService extends Service {
   @Override public int onStartCommand(Intent intent, int flags, int startId) {
     String instanceId = intent == null ? null : intent.getStringExtra("instance_id");
     String packageName = intent == null ? null : intent.getStringExtra("package_name");
-    if (instanceId == null || packageName == null) return START_NOT_STICKY;
+    String baseApkPath = intent == null ? null : intent.getStringExtra("base_apk_path");
+    String launcherActivity = intent == null ? null : intent.getStringExtra("launcher_activity");
+    if (instanceId == null || packageName == null || baseApkPath == null
+        || launcherActivity == null) return START_NOT_STICKY;
     String storagePath = new java.io.File(new java.io.File(getFilesDir(), "instances"), instanceId).getAbsolutePath();
     try {
+      InstanceStoragePaths.requireContainedFile(
+          new java.io.File(storagePath), new java.io.File(baseApkPath));
       if (!nativeRuntime.mountInstanceStorage(nativeHandle, instanceId, storagePath)) {
         stopSelf(startId);
         return START_NOT_STICKY;
       }
       // This initializes only the native compatibility slot; it does not load an APK.
       nativeRuntime.startInstance(nativeHandle, instanceId, packageName);
-    } catch (IllegalArgumentException | IllegalStateException error) {
+    } catch (java.io.IOException | IllegalArgumentException | IllegalStateException error) {
       stopSelf(startId);
     }
     return START_NOT_STICKY;

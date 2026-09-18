@@ -52,6 +52,20 @@ public final class PendingLaunchRegistryTest {
     assertEquals(PendingLaunchRegistry.STATUS_INVALID, registry.claim(ticket.token, 0).status);
   }
 
+  @Test
+  public void preparationFailureIsReportedOnceToTheMatchingSlot() {
+    PendingLaunchRegistry registry = new PendingLaunchRegistry(() -> 0L, 1_000L);
+    PendingLaunchRegistry.Ticket ticket = registry.issue(
+        "instance-1", 0, "example.app", "snapshot/base.apk", "example.app.MainActivity");
+
+    assertTrue(registry.markFailed(ticket.token, "instance-1", "native runtime unavailable"));
+    PendingLaunchRegistry.Claim claim = registry.claim(ticket.token, 0);
+
+    assertEquals(PendingLaunchRegistry.STATUS_FAILED, claim.status);
+    assertEquals("native runtime unavailable", claim.ticket.failureMessage);
+    assertEquals(PendingLaunchRegistry.STATUS_INVALID, registry.claim(ticket.token, 0).status);
+  }
+
   private static final class MutableClock implements PendingLaunchRegistry.Clock {
     long now;
     @Override public long nowMillis() { return now; }

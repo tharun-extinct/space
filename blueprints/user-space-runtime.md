@@ -6,7 +6,7 @@ A Flutter controller creates and observes instance records through typed Android
 
 ## Current verified status
 
-**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, a declared-component catalog, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services and Activity stubs. Opening an eligible instance now starts its assigned runtime slot and routes the visible launch through a short-lived, one-time capability that the matching Activity stub claims only after slot preparation. Java unit tests cover controller transitions, slot allocation, imported-path containment, and launch-capability readiness, slot binding, one-time consumption, and expiry. A slot can validate the imported classpath and resolve the launcher class without initialization before entering native bookkeeping state, but the stub still does not instantiate or attach the target APK's `Application` or launcher Activity. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
+**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, a declared-component catalog, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services and Activity stubs. Opening an eligible instance now starts its assigned runtime slot and routes the visible launch through a short-lived, one-time capability that the matching Activity stub claims only after slot preparation. Native-library/JNI initialization and guest-class linkage now run inside the slot's controlled startup boundary: preparation failures are returned through the launch capability instead of intentionally escaping the service callback, and an `error` instance can be retried. Java unit tests cover controller transitions, slot allocation, imported-path containment, and launch-capability readiness, failure delivery, slot binding, one-time consumption, and expiry. A slot can validate the imported classpath and resolve the launcher class without initialization before entering native bookkeeping state, but the stub still does not instantiate or attach the target APK's `Application` or launcher Activity. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
 
 ## Architecture dependencies
 
@@ -22,6 +22,7 @@ A Flutter controller creates and observes instance records through typed Android
 - Runtime and slot services remain non-exported, bounded, and Flutter-free.
 - Activity stubs remain non-exported, share their corresponding slot process, and accept only a coordinator-issued capability for that slot. A capability is process-local, single-use, and expires closed.
 - A slot confirms contained APK/Dex preparation and native bookkeeping before the coordinator advances `starting` to `running`; failure advances the record to `error`. Even `running` remains runtime-slot state and is not a claim that the guest launcher Activity is visible.
+- Slot startup must not load JNI outside its guarded preparation path. Native load, ABI, and guest-class linkage failures are bounded, reported to the matching launch capability, and leave the instance eligible for an explicit retry.
 - This phase has no backend dependency: login, licensing, remote manifests, telemetry, and server-side logging remain deferred.
 
 ## Incremental delivery plan
@@ -66,6 +67,7 @@ None.
 - [x] The coordinator advances `starting` only after the slot reports successful package and native preparation.
 - [x] An eligible UI launch starts a bounded slot and opens its matching non-exported Activity stub through an expiring, one-time capability.
 - [x] Launch capabilities reject the wrong slot, premature consumption, reuse, and expiry in Java unit tests.
+- [x] Slot preparation failures are delivered once to the matching Activity stub, and the controller permits an explicit retry from `error`.
 - [x] CI defines Flutter and Android verification and test-APK publication workflows.
 - [ ] Runtime recovery, process death, and storage separation have instrumentation coverage.
 - [ ] Java and native statuses are reconciled without treating process-local state as durable truth.
@@ -76,6 +78,6 @@ None.
 
 - APK snapshot import is implemented but update reconciliation and orphan cleanup are not.
 - Launcher-class resolution and host stub routing are implemented, but guest resources, class initialization, `Application`/Activity attachment, PackageManager and ActivityManager virtualization, and native-library loading are not.
-- Runtime recovery and per-instance storage isolation still need Android instrumentation tests.
+- Runtime recovery, process-death containment, and per-instance storage isolation still need Android instrumentation tests; the guarded slot-startup path has static and Java-unit evidence only.
 - The Rust RuntimeCore build, JNI loading, and artifact packaging remain partial until CI verifies them.
 - Durable release signing, crash reporting, and device-fleet testing are deferred.

@@ -13,6 +13,7 @@ public final class RuntimeService extends Service {
   static final String ACTION_SLOT_FAILED = "com.parallelverse.controller.runtime.SLOT_FAILED";
   static final String EXTRA_INSTANCE_ID = "instance_id";
   static final String EXTRA_LAUNCH_TOKEN = "launch_token";
+  static final String EXTRA_FAILURE_MESSAGE = "failure_message";
   private RuntimeDatabase database;
   private RuntimeRepository repository;
   private final PendingLaunchRegistry pendingLaunches = new PendingLaunchRegistry();
@@ -113,6 +114,7 @@ public final class RuntimeService extends Service {
         result.putString("packageName", claim.ticket.packageName);
         result.putString("apkClassPath", claim.ticket.apkClassPath);
         result.putString("launcherActivity", claim.ticket.launcherActivity);
+        result.putString("failureMessage", claim.ticket.failureMessage);
         result.putInt("slot", claim.ticket.slot);
       }
       return result;
@@ -168,8 +170,14 @@ public final class RuntimeService extends Service {
         }
       });
     } else if (ACTION_SLOT_FAILED.equals(intent.getAction())) {
+      String failureMessage = intent.getStringExtra(EXTRA_FAILURE_MESSAGE);
       maintenanceExecutor.execute(() -> {
-        if (launchToken != null) pendingLaunches.revoke(launchToken);
+        if (launchToken != null) {
+          pendingLaunches.markFailed(
+              launchToken,
+              instanceId,
+              failureMessage == null ? "The runtime slot could not prepare this app." : failureMessage);
+        }
         if (InstanceState.STARTING.name().equals(repository.require(instanceId).state)) {
           repository.markStartFailed(instanceId);
         }

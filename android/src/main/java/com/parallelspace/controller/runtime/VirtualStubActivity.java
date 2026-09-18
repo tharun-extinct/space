@@ -76,6 +76,11 @@ public abstract class VirtualStubActivity extends Activity {
         showPrepared(claim);
         return;
       }
+      if (PendingLaunchRegistry.STATUS_FAILED.equals(status)) {
+        showFailure(claim.getString(
+            "failureMessage", "The runtime slot could not prepare this app."));
+        return;
+      }
       if (PendingLaunchRegistry.STATUS_PENDING.equals(status) && attempts++ < MAX_POLLS) {
         handler.postDelayed(this::pollLaunch, POLL_INTERVAL_MS);
         return;

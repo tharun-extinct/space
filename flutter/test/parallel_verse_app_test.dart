@@ -100,4 +100,30 @@ void main() {
       expect(find.textContaining('unsupported'), findsOneWidget);
     },
   );
+
+  testWidgets('allows retry after a controlled runtime failure', (tester) async {
+    final runtime = FakeRuntimeClient(
+      instances: const <CloneInstance>[
+        CloneInstance(
+          id: 'instance-retry',
+          packageName: 'com.example.retry',
+          displayName: 'Retry app',
+          state: 'ERROR',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [runtimeClientProvider.overrideWithValue(runtime)],
+        child: const ParallelVerseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Retry app'));
+    await tester.pump();
+
+    expect(runtime.openedInstanceIds, <String>['instance-retry']);
+  });
 }

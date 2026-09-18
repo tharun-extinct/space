@@ -45,7 +45,8 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 
 - `android/runtime-core/Cargo.toml` and `android/runtime-core/src/lib.rs` — Rust crate, JNI exports, runtime registry, state invariants, containment checks, and unit tests (concurrent implementation; verify before relying on it).
 - `android/src/main/java/com/parallelspace/controller/runtime/NativeRuntime.java` — versioned Java JNI surface.
-- `android/src/main/java/com/parallelspace/controller/runtime/VirtualSlotService.java` — one-process handle owner and caller.
+- `android/src/main/java/com/parallelspace/controller/runtime/VirtualSlotService.java` — one-process handle owner and guarded native-loading caller; JNI/linkage failures are converted to controller-visible preparation failures.
+- `android/src/main/java/com/parallelspace/controller/runtime/PendingLaunchRegistry.java` and `VirtualStubActivity.java` — Java-owned launch routing evidence that must remain outside the JNI surface.
 - `android/build.gradle` — Android native artifact packaging integration.
 - `.github/workflows/verify.yml` — authoritative Rust tests and Android debug build.
 - `.github/workflows/release-apk.yml` — authoritative release-path Rust build and APK packaging.
@@ -59,11 +60,14 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - [ ] Traversal, sibling-prefix, absolute-path, symlink, and rebind attempts cannot escape or replace an instance storage root.
 - [ ] Legal state transitions and rejected transitions have deterministic unit coverage.
 - [ ] Panics are contained before the JNI ABI boundary and surfaced as stable errors.
+- [x] Activity-stub launch capabilities remain Java-owned and do not cross or expand the JNI ABI.
+- [x] Native `startInstance` remains bookkeeping and is not treated as guest Activity execution by the Java launch route.
+- [x] Native library loading and ABI initialization occur inside the slot startup recovery boundary rather than `Service.onCreate`.
 - [ ] Java integration tests distinguish native bookkeeping success from actual target-app execution.
 
 ## Remaining gaps and unknowns
 
 - The concurrent Rust implementation and CI integration have not yet been verified by a completed workflow run.
-- JNI symbol/loading and ABI-version agreement still need Android instrumentation coverage.
+- JNI symbol/loading, ABI-version agreement, and slot-process survival on incompatible artifacts still need Android instrumentation coverage.
 - Filesystem mapping beyond root containment, package parsing, native-library inspection/loading, and measured compatibility hooks are planned, not current behavior.
 - Guest APK installation, resources/class initialization, guest-component attachment, Binder adaptation, and Android-version compatibility remain Java/runtime-wide future work, not RuntimeCore v1. Host Activity-stub routing is present but does not change this boundary.

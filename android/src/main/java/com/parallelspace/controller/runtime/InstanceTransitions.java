@@ -14,6 +14,7 @@ public final class InstanceTransitions {
       case RUNNING: return to == InstanceState.STOPPING || to == InstanceState.ERROR;
       case STOPPING: return to == InstanceState.STOPPED || to == InstanceState.ERROR;
       case STOPPED: return to == InstanceState.STARTING || to == InstanceState.ERROR;
+      case ERROR: return to == InstanceState.STARTING;
       default: return false;
     }
   }

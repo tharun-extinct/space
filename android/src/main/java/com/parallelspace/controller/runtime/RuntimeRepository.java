@@ -53,7 +53,7 @@ public final class RuntimeRepository {
     Integer slot = slots.firstFree(database.instances().all());
     if (slot == null) throw new IllegalStateException("All runtime slots are occupied");
     int changed = database.instances().transition(id, InstanceState.STARTING.name(), slot, System.currentTimeMillis(),
-        Arrays.asList(InstanceState.READY.name(), InstanceState.STOPPED.name()));
+        Arrays.asList(InstanceState.READY.name(), InstanceState.STOPPED.name(), InstanceState.ERROR.name()));
     if (changed != 1) throw new IllegalStateException("Instance is not ready to start");
     return require(id);
   }

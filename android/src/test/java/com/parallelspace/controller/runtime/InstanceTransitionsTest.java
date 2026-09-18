@@ -20,4 +20,7 @@ public final class InstanceTransitionsTest {
   @Test public void deniesRunningBeforeReadiness() {
     assertFalse(InstanceTransitions.allows(InstanceState.DRAFT, InstanceState.RUNNING));
   }
+  @Test public void permitsRetryAfterAControlledRuntimeFailure() {
+    assertTrue(InstanceTransitions.allows(InstanceState.ERROR, InstanceState.STARTING));
+  }
 }

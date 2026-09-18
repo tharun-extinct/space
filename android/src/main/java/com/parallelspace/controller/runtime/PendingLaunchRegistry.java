@@ -9,6 +9,7 @@ import java.util.UUID;
 final class PendingLaunchRegistry {
   static final String STATUS_PENDING = "PENDING";
   static final String STATUS_READY = "READY";
+  static final String STATUS_FAILED = "FAILED";
   static final String STATUS_INVALID = "INVALID";
   private static final long DEFAULT_TTL_MS = 30_000L;
 
@@ -25,6 +26,7 @@ final class PendingLaunchRegistry {
     final String launcherActivity;
     final long expiresAtMillis;
     boolean ready;
+    String failureMessage;
 
     Ticket(
         String token,
@@ -102,10 +104,22 @@ final class PendingLaunchRegistry {
     return true;
   }
 
+  synchronized boolean markFailed(String token, String instanceId, String failureMessage) {
+    purgeExpired();
+    Ticket ticket = tickets.get(token);
+    if (ticket == null || !ticket.instanceId.equals(instanceId)) return false;
+    ticket.failureMessage = failureMessage;
+    return true;
+  }
+
   synchronized Claim claim(String token, int slot) {
     purgeExpired();
     Ticket ticket = tickets.get(token);
     if (ticket == null || ticket.slot != slot) return Claim.invalid();
+    if (ticket.failureMessage != null) {
+      tickets.remove(token);
+      return new Claim(STATUS_FAILED, ticket);
+    }
     if (!ticket.ready) return Claim.pending(ticket);
     tickets.remove(token);
     return Claim.ready(ticket);

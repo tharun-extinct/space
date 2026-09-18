@@ -48,7 +48,8 @@ class CloneInstance {
   final String displayName;
   final String state;
 
-  bool get canOpen => state == 'READY' || state == 'STOPPED';
+  bool get canOpen =>
+      state == 'READY' || state == 'STOPPED' || state == 'ERROR';
 
   factory CloneInstance.fromMap(Map<Object?, Object?> map) {
     return CloneInstance(

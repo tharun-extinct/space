@@ -62,5 +62,6 @@ jobs:
       - name: Test Rust runtime core
         run: cargo +1.89.0 test --manifest-path android/runtime-core/Cargo.toml
       - name: Build Rust runtime core for ARM64 Android
-        run: cargo +1.89.0 ndk -t arm64-v8a -o android/runtime-core/jniLibs build --release --manifest-path android/runtime-core/Cargo.toml
+        working-directory: android/runtime-core
+        run: cargo +1.89.0 ndk -t arm64-v8a -o jniLibs build --release
       - run: gradle test assembleDebug --stacktrace

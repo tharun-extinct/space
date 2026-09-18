@@ -8,6 +8,8 @@
 # - Third-party actions use immutable commit SHAs; editor resolution warnings were not build failures.
 # - setup-android v4 still defaults to the removed SDK package `tools`; disable its
 #   default package installation and install the pinned NDK explicitly instead.
+# - cargo-ndk resolves crate metadata before forwarding Cargo arguments, so its build
+#   step must run from the Rust crate directory instead of the repository root.
 
 name: Android Test Release
 
@@ -74,7 +76,8 @@ jobs:
         run: cargo +1.89.0 test --manifest-path android/runtime-core/Cargo.toml
 
       - name: Build Rust runtime core for ARM64 Android
-        run: cargo +1.89.0 ndk -t arm64-v8a -o android/runtime-core/jniLibs build --release --manifest-path android/runtime-core/Cargo.toml
+        working-directory: android/runtime-core
+        run: cargo +1.89.0 ndk -t arm64-v8a -o jniLibs build --release
 
       - name: Test and build debug-signed APK
         run: gradle :android:testDebugUnitTest :android:assembleDebug --stacktrace

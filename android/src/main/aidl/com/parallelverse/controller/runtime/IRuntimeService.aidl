@@ -6,7 +6,8 @@ import android.os.Bundle;
 interface IRuntimeService {
     String createInstance(String packageName, String displayName);
     List<Bundle> listInstances();
-    void startInstance(String instanceId);
+    Bundle startInstance(String instanceId);
+    Bundle claimLaunch(String launchToken, int slot);
     void stopInstance(String instanceId);
     String getInstanceState(String instanceId);
 }

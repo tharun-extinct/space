@@ -14,7 +14,7 @@ Virtual processes share the host application's Android UID. Process slots provid
 
 Flutter/Dart is the controller UI only: onboarding, app catalog, instance management, and settings. Riverpod owns UI state. Pigeon-generated APIs form the typed Flutter-to-Java control boundary.
 
-Java is the control plane. It owns Android-framework interaction, Room metadata, process-slot allocation, AIDL, lifecycle recovery, APK inspection, permissions, services, notifications, and compatibility decisions. A Java `RuntimeService` runs in a dedicated manifest-declared process and owns active runtime sessions. Each virtual slot is a bounded, manifest-declared Java process. Virtual slot processes must never initialize Flutter.
+Java is the control plane. It owns Android-framework interaction, Room metadata, process-slot allocation, AIDL, lifecycle recovery, APK inspection, permissions, services, notifications, and compatibility decisions. A Java `RuntimeService` runs in a dedicated manifest-declared process and owns active runtime sessions. Each virtual slot is a bounded, manifest-declared Java process containing a non-exported service and Activity stub. Virtual slot processes must never initialize Flutter.
 
 Rust is the memory-safe native runtime core for storage containment, runtime-state invariants, package/binary inspection, and later measured low-level compatibility work. Rust does not own Android component lifecycle, Binder orchestration, resources, class loading, DEX loading, or policy decisions. Java reaches the core through a coarse, versioned JNI ABI implemented by Rust with C-compatible `extern "system"` exports; high-frequency Android framework behavior remains in Java.
 
@@ -33,6 +33,8 @@ The earlier C++ lifecycle tracker is superseded by the Rust RuntimeCore migratio
 An instance has a stable controller-generated ID, a target package name, and one assigned runtime slot while active. Room is the authoritative metadata store. The app-private filesystem owns data under one directory per instance; Dart local storage may hold UI preferences only. Dart and Java must not write the same database.
 
 Java imports an immutable execution snapshot for each instance before it becomes `ready`. The snapshot consists of the installed package's base APK and split APKs under the instance directory plus Room-owned package name, version, launcher component, declared activity/service/receiver/provider names, and signing-certificate digest. Runtime code consumes only paths resolved beneath that instance directory. Importing a snapshot is not itself successful clone execution and does not authorize falling back to the device-installed launcher.
+
+Every UI launch is routed through a short-lived, one-time capability issued by the runtime coordinator for exactly one instance and slot. The capability remains pending until that slot validates the snapshot and native runtime preparation, can be claimed only by the matching non-exported Activity stub, expires closed, and is not durable recovery state. A prepared stub window is not evidence that the guest `Application` or launcher `Activity` has been attached.
 
 A logical virtual-user identity is an application-level namespace associated with instance metadata and storage. It is not an Android UID, does not change the Linux credentials of a process, and is not a security boundary. The Java control plane owns the mapping from controller identity to logical virtual user; the native core may validate and enforce the supplied storage namespace but must not invent identity.
 

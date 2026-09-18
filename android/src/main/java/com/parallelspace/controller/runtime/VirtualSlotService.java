@@ -23,8 +23,9 @@ public class VirtualSlotService extends Service {
     String baseApkPath = intent == null ? null : intent.getStringExtra("base_apk_path");
     String apkClassPath = intent == null ? null : intent.getStringExtra("apk_class_path");
     String launcherActivity = intent == null ? null : intent.getStringExtra("launcher_activity");
+    String launchToken = intent == null ? null : intent.getStringExtra("launch_token");
     if (instanceId == null || packageName == null || baseApkPath == null || apkClassPath == null
-        || launcherActivity == null) return START_NOT_STICKY;
+        || launcherActivity == null || launchToken == null) return START_NOT_STICKY;
     String storagePath = new java.io.File(new java.io.File(getFilesDir(), "instances"), instanceId).getAbsolutePath();
     try {
       InstanceStoragePaths.requireContainedFile(
@@ -41,19 +42,20 @@ public class VirtualSlotService extends Service {
       }
       // Class resolution above does not initialize the guest or attach an Android component.
       nativeRuntime.startInstance(nativeHandle, instanceId, packageName);
-      reportSlotState(RuntimeService.ACTION_SLOT_READY, instanceId);
+      reportSlotState(RuntimeService.ACTION_SLOT_READY, instanceId, launchToken);
     } catch (java.io.IOException | ClassNotFoundException | IllegalArgumentException
         | IllegalStateException error) {
-      reportSlotState(RuntimeService.ACTION_SLOT_FAILED, instanceId);
+      reportSlotState(RuntimeService.ACTION_SLOT_FAILED, instanceId, launchToken);
       stopSelf(startId);
     }
     return START_NOT_STICKY;
   }
 
-  private void reportSlotState(String action, String instanceId) {
+  private void reportSlotState(String action, String instanceId, String launchToken) {
     startService(new Intent(this, RuntimeService.class)
         .setAction(action)
-        .putExtra(RuntimeService.EXTRA_INSTANCE_ID, instanceId));
+        .putExtra(RuntimeService.EXTRA_INSTANCE_ID, instanceId)
+        .putExtra(RuntimeService.EXTRA_LAUNCH_TOKEN, launchToken));
   }
 
   @Override public void onDestroy() {

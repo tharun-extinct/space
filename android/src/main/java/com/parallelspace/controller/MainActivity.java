@@ -11,6 +11,9 @@ import android.os.IBinder;
 import androidx.annotation.NonNull;
 import com.parallelverse.controller.runtime.IRuntimeService;
 import com.parallelverse.controller.runtime.RuntimeService;
+import com.parallelverse.controller.runtime.VirtualSlot0Activity;
+import com.parallelverse.controller.runtime.VirtualSlot1Activity;
+import com.parallelverse.controller.runtime.VirtualStubActivity;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
@@ -134,9 +137,16 @@ public final class MainActivity extends FlutterActivity {
       throw new IllegalStateException("This app instance is not ready to open.");
     }
 
-    throw new UnsupportedOperationException(
-        "The APK snapshot is ready, but Android activity virtualization is not implemented yet. "
-            + "The normal installed app was not opened.");
+    Bundle launch = runtimeService.startInstance(instanceId);
+    int slot = launch.getInt("slot", -1);
+    String token = launch.getString("launchToken");
+    if (token == null || (slot != 0 && slot != 1)) {
+      throw new IllegalStateException("The runtime returned an invalid virtual launch route.");
+    }
+    Class<?> stubActivity = slot == 0 ? VirtualSlot0Activity.class : VirtualSlot1Activity.class;
+    startActivity(new Intent(this, stubActivity)
+        .putExtra(VirtualStubActivity.EXTRA_LAUNCH_TOKEN, token)
+        .putExtra(VirtualStubActivity.EXTRA_SLOT, slot));
   }
 
   private Map<String, Object> bundleToMap(Bundle item) {

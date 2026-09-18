@@ -12,8 +12,10 @@ public final class RuntimeService extends Service {
   static final String ACTION_SLOT_READY = "com.parallelverse.controller.runtime.SLOT_READY";
   static final String ACTION_SLOT_FAILED = "com.parallelverse.controller.runtime.SLOT_FAILED";
   static final String EXTRA_INSTANCE_ID = "instance_id";
+  static final String EXTRA_LAUNCH_TOKEN = "launch_token";
   private RuntimeDatabase database;
   private RuntimeRepository repository;
+  private final PendingLaunchRegistry pendingLaunches = new PendingLaunchRegistry();
   private java.util.concurrent.ExecutorService maintenanceExecutor;
   private final java.util.concurrent.CountDownLatch recoveryComplete =
       new java.util.concurrent.CountDownLatch(1);
@@ -55,7 +57,7 @@ public final class RuntimeService extends Service {
       }
       return result;
     }
-    @Override public void startInstance(String instanceId) {
+    @Override public Bundle startInstance(String instanceId) {
       awaitRecovery();
       VirtualPackageEntity virtualPackage = repository.requireVirtualPackage(instanceId);
       java.io.File baseApk = repository.resolveSnapshotFile(
@@ -68,6 +70,12 @@ public final class RuntimeService extends Service {
         }
       }
       InstanceEntity instance = repository.reserveStart(instanceId);
+      PendingLaunchRegistry.Ticket launch = pendingLaunches.issue(
+          instance.id,
+          instance.slot,
+          instance.packageName,
+          String.join(java.io.File.pathSeparator, apkPaths),
+          virtualPackage.launcherActivity);
       Class<?> slotService = instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class;
       Intent intent = new Intent(RuntimeService.this, slotService)
           .putExtra("instance_id", instance.id)
@@ -75,13 +83,44 @@ public final class RuntimeService extends Service {
           .putExtra("base_apk_path", baseApk.getAbsolutePath())
           .putExtra("apk_class_path", String.join(java.io.File.pathSeparator, apkPaths))
           .putExtra("launcher_activity", virtualPackage.launcherActivity)
+          .putExtra(EXTRA_LAUNCH_TOKEN, launch.token)
           .putExtra("signer_sha256", virtualPackage.signerSha256);
-      ComponentName started = startService(intent);
-      if (started == null) throw new IllegalStateException("Could not start runtime slot");
+      ComponentName started;
+      try {
+        started = startService(intent);
+      } catch (RuntimeException error) {
+        pendingLaunches.revoke(launch.token);
+        repository.markStartFailed(instanceId);
+        throw error;
+      }
+      if (started == null) {
+        pendingLaunches.revoke(launch.token);
+        repository.markStartFailed(instanceId);
+        throw new IllegalStateException("Could not start runtime slot");
+      }
+      Bundle result = new Bundle();
+      result.putString("launchToken", launch.token);
+      result.putInt("slot", instance.slot);
+      return result;
+    }
+    @Override public Bundle claimLaunch(String launchToken, int slot) {
+      awaitRecovery();
+      PendingLaunchRegistry.Claim claim = pendingLaunches.claim(launchToken, slot);
+      Bundle result = new Bundle();
+      result.putString("status", claim.status);
+      if (claim.ticket != null) {
+        result.putString("instanceId", claim.ticket.instanceId);
+        result.putString("packageName", claim.ticket.packageName);
+        result.putString("apkClassPath", claim.ticket.apkClassPath);
+        result.putString("launcherActivity", claim.ticket.launcherActivity);
+        result.putInt("slot", claim.ticket.slot);
+      }
+      return result;
     }
     @Override public void stopInstance(String instanceId) {
       awaitRecovery();
       InstanceEntity instance = repository.require(instanceId);
+      pendingLaunches.revokeInstance(instanceId);
       if (instance.slot != null) {
         stopService(new Intent(RuntimeService.this, instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class));
       }
@@ -106,11 +145,35 @@ public final class RuntimeService extends Service {
   @Override public int onStartCommand(Intent intent, int flags, int startId) {
     if (intent == null || intent.getAction() == null) return START_NOT_STICKY;
     String instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID);
+    String launchToken = intent.getStringExtra(EXTRA_LAUNCH_TOKEN);
     if (instanceId == null) return START_NOT_STICKY;
     if (ACTION_SLOT_READY.equals(intent.getAction())) {
-      maintenanceExecutor.execute(() -> repository.markRunning(instanceId));
+      maintenanceExecutor.execute(() -> {
+        if (launchToken == null) {
+          if (InstanceState.STARTING.name().equals(repository.require(instanceId).state)) {
+            repository.markStartFailed(instanceId);
+          }
+          return;
+        }
+        repository.markRunning(instanceId);
+        // Publish the capability only after durable controller state says the slot is running.
+        if (!pendingLaunches.markReady(launchToken, instanceId)) {
+          repository.markStopped(instanceId);
+          InstanceEntity instance = repository.require(instanceId);
+          if (instance.slot != null) {
+            stopService(new Intent(
+                RuntimeService.this,
+                instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class));
+          }
+        }
+      });
     } else if (ACTION_SLOT_FAILED.equals(intent.getAction())) {
-      maintenanceExecutor.execute(() -> repository.markStartFailed(instanceId));
+      maintenanceExecutor.execute(() -> {
+        if (launchToken != null) pendingLaunches.revoke(launchToken);
+        if (InstanceState.STARTING.name().equals(repository.require(instanceId).state)) {
+          repository.markStartFailed(instanceId);
+        }
+      });
     }
     return START_NOT_STICKY;
   }

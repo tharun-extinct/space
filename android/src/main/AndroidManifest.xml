@@ -24,5 +24,20 @@
         <service android:name=".runtime.RuntimeService" android:process=":runtime" android:exported="false" />
         <service android:name=".runtime.VirtualSlot0Service" android:process=":slot0" android:exported="false" />
         <service android:name=".runtime.VirtualSlot1Service" android:process=":slot1" android:exported="false" />
+        <!-- Bounded, non-exported Activity shells share their corresponding Java-only slot process. -->
+        <activity
+            android:name=".runtime.VirtualSlot0Activity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|density|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:process=":slot0"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".runtime.VirtualSlot1Activity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|density|uiMode"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:process=":slot1"
+            android:theme="@style/AppTheme" />
     </application>
 </manifest>

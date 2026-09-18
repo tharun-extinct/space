@@ -41,6 +41,10 @@ jobs:
           flutter-version: '3.47.2'
           channel: stable
       - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          # v4 defaults to `tools platform-tools`, but the legacy `tools`
+          # package is no longer published. The NDK is installed explicitly below.
+          packages: ''
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: '8.14.5'

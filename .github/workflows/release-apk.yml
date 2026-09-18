@@ -6,6 +6,8 @@
 # - Disabling code shrinking also requires disabling resource shrinking (`shrinkResources false`).
 # - Dart formatting and Flutter tests fail CI when files are unformatted or the test directory is absent.
 # - Third-party actions use immutable commit SHAs; editor resolution warnings were not build failures.
+# - setup-android v4 still defaults to the removed SDK package `tools`; disable its
+#   default package installation and install the pinned NDK explicitly instead.
 
 name: Android Test Release
 
@@ -45,6 +47,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0

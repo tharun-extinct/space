@@ -196,7 +196,12 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_m
     guard(&mut env, JNI_FALSE, |env| {
         let id = java_string(env, id)?;
         let path = java_string(env, path)?;
-        with_registry(|runtimes| runtimes.get_mut(&handle).ok_or("invalid runtime handle".into())?.mount(&id, Path::new(&path)))?;
+        with_registry(|runtimes| {
+            runtimes
+                .get_mut(&handle)
+                .ok_or_else(|| "invalid runtime handle".to_owned())?
+                .mount(&id, Path::new(&path))
+        })?;
         Ok(JNI_TRUE)
     })
 }
@@ -208,7 +213,12 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_s
     guard(&mut env, (), |env| {
         let id = java_string(env, id)?;
         let package = java_string(env, package)?;
-        with_registry(|runtimes| runtimes.get_mut(&handle).ok_or("invalid runtime handle".into())?.start(&id, &package))
+        with_registry(|runtimes| {
+            runtimes
+                .get_mut(&handle)
+                .ok_or_else(|| "invalid runtime handle".to_owned())?
+                .start(&id, &package)
+        })
     })
 }
 
@@ -218,7 +228,12 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_s
 ) {
     guard(&mut env, (), |env| {
         let id = java_string(env, id)?;
-        with_registry(|runtimes| runtimes.get_mut(&handle).ok_or("invalid runtime handle".into())?.stop(&id))
+        with_registry(|runtimes| {
+            runtimes
+                .get_mut(&handle)
+                .ok_or_else(|| "invalid runtime handle".to_owned())?
+                .stop(&id)
+        })
     })
 }
 
@@ -238,7 +253,10 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_d
     mut env: JNIEnv, _this: JObject, handle: jlong,
 ) {
     guard(&mut env, (), |_env| with_registry(|runtimes| {
-        runtimes.remove(&handle).map(|_| ()).ok_or("invalid runtime handle".into())
+        runtimes
+            .remove(&handle)
+            .map(|_| ())
+            .ok_or_else(|| "invalid runtime handle".to_owned())
     }))
 }
 

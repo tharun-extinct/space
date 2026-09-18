@@ -26,4 +26,23 @@ public final class InstanceStoragePaths {
     }
     return canonicalCandidate;
   }
+
+  /**
+   * Resolves an instance-owned code file and removes write permission before Android loads it.
+   * This also upgrades snapshots imported by older Parallel Verse builds.
+   */
+  public static File requireReadOnlyCodeFile(File instanceRoot, File candidate) throws IOException {
+    File containedFile = requireContainedFile(instanceRoot, candidate);
+    makeReadOnly(containedFile);
+    return containedFile;
+  }
+
+  static void makeReadOnly(File file) throws IOException {
+    if (file.canWrite() && !file.setReadOnly()) {
+      throw new IOException("Cannot make the imported APK read-only");
+    }
+    if (file.canWrite()) {
+      throw new IOException("The imported APK remains writable");
+    }
+  }
 }

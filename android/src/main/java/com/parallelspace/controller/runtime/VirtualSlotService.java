@@ -21,16 +21,28 @@ public class VirtualSlotService extends Service {
     String apkClassPath = intent == null ? null : intent.getStringExtra("apk_class_path");
     String launcherActivity = intent == null ? null : intent.getStringExtra("launcher_activity");
     String launchToken = intent == null ? null : intent.getStringExtra("launch_token");
+    String signerSha256 = intent == null ? null : intent.getStringExtra("signer_sha256");
     if (instanceId == null || packageName == null || baseApkPath == null || apkClassPath == null
-        || launcherActivity == null || launchToken == null) return START_NOT_STICKY;
+        || launcherActivity == null || launchToken == null || signerSha256 == null) {
+      return START_NOT_STICKY;
+    }
     String storagePath = new java.io.File(new java.io.File(getFilesDir(), "instances"), instanceId).getAbsolutePath();
     try {
       ensureNativeRuntime();
-      InstanceStoragePaths.requireContainedFile(
-          new java.io.File(storagePath), new java.io.File(baseApkPath));
+      java.io.File instanceRoot = new java.io.File(storagePath);
+      java.util.List<java.io.File> codeFiles = new java.util.ArrayList<>();
+      java.io.File baseCodeFile = InstanceStoragePaths.requireContainedFile(
+          instanceRoot, new java.io.File(baseApkPath));
+      codeFiles.add(baseCodeFile);
       for (String apkPath : apkClassPath.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator))) {
-        InstanceStoragePaths.requireContainedFile(
-            new java.io.File(storagePath), new java.io.File(apkPath));
+        java.io.File codeFile = InstanceStoragePaths.requireContainedFile(
+            instanceRoot, new java.io.File(apkPath));
+        if (!codeFiles.contains(codeFile)) codeFiles.add(codeFile);
+      }
+      ApkSnapshotImporter.verifyPackageFile(
+          getPackageManager(), baseCodeFile, packageName, signerSha256);
+      for (java.io.File codeFile : codeFiles) {
+        InstanceStoragePaths.requireReadOnlyCodeFile(instanceRoot, codeFile);
       }
       GuestCodeLoader.loadLauncherWithoutInitialization(
           this, instanceId, apkClassPath, launcherActivity);

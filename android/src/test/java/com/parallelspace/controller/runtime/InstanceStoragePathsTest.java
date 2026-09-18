@@ -1,6 +1,7 @@
 package com.parallelverse.controller.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 import java.io.File;
@@ -31,5 +32,17 @@ public final class InstanceStoragePathsTest {
 
     assertThrows(IllegalArgumentException.class,
         () -> InstanceStoragePaths.requireOwnedFile(root, "../outside.apk"));
+  }
+
+  @Test public void sealsAnExistingSnapshotBeforeDynamicLoading() throws Exception {
+    File root = temporaryFolder.newFolder("legacy-instance");
+    File packageDirectory = new File(root, "package");
+    if (!packageDirectory.mkdirs()) throw new IllegalStateException("Could not create test directory");
+    File apk = new File(packageDirectory, "base.apk");
+    if (!apk.createNewFile()) throw new IllegalStateException("Could not create test APK");
+
+    assertEquals(apk.getCanonicalFile(),
+        InstanceStoragePaths.requireReadOnlyCodeFile(root, apk));
+    assertFalse(apk.canWrite());
   }
 }

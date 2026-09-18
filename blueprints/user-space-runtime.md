@@ -6,7 +6,7 @@ A Flutter controller creates and observes instance records through typed Android
 
 ## Current verified status
 
-**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, a declared-component catalog, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services and Activity stubs. Opening an eligible instance now starts its assigned runtime slot and routes the visible launch through a short-lived, one-time capability that the matching Activity stub claims only after slot preparation. Native-library/JNI initialization and guest-class linkage now run inside the slot's controlled startup boundary: preparation failures are returned through the launch capability instead of intentionally escaping the service callback, and an `error` instance can be retried. Java unit tests cover controller transitions, slot allocation, imported-path containment, and launch-capability readiness, failure delivery, slot binding, one-time consumption, and expiry. A slot can validate the imported classpath and resolve the launcher class without initialization before entering native bookkeeping state, but the stub still does not instantiate or attach the target APK's `Application` or launcher Activity. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
+**Partial (verified 2026-09-18).** The repository contains a Flutter launcher hosted by `FlutterActivity`, a Java control plane with Room-backed instance and virtual-package records, immutable base/split APK import, launcher/version/signer metadata, a declared-component catalog, bounded slot allocation, AIDL runtime control, and two manifest-declared Java-only slot services and Activity stubs. Imported APK paths are made read-only while their copy descriptor is open, satisfying Android's writable-DEX restriction. Before class loading, slot preparation rechecks the base APK package identity and signer against Room metadata, then seals all base/split snapshots created by older builds. Opening an eligible instance starts its assigned runtime slot and routes the visible launch through a short-lived, one-time capability that the matching Activity stub claims only after slot preparation. Native-library/JNI initialization and guest-class linkage run inside the slot's controlled startup boundary: preparation failures are returned through the launch capability instead of intentionally escaping the service callback, and an `error` instance can be retried. Java unit tests cover controller transitions, slot allocation, imported-path containment, read-only migration, and launch-capability readiness, failure delivery, slot binding, one-time consumption, and expiry. A slot can validate the imported classpath and resolve the launcher class without initialization before entering native bookkeeping state, but the stub still does not instantiate or attach the target APK's `Application` or launcher Activity. GitHub Actions is the declared Gradle/build authority; this documentation review did not execute Gradle.
 
 ## Architecture dependencies
 
@@ -19,6 +19,7 @@ A Flutter controller creates and observes instance records through typed Android
 
 - An instance ID and logical virtual-user identity are application namespaces, not Android UIDs or security containers.
 - Only the Java controller may import APK snapshots, record signer and launcher provenance, allocate slots, persist lifecycle transitions, and decide whether an installed package is eligible.
+- Base and split APK snapshots must lose filesystem write permission before they are exposed to `DexClassLoader`; slot preparation verifies base-package/signing provenance and fails closed if a legacy snapshot cannot be sealed read-only.
 - Runtime and slot services remain non-exported, bounded, and Flutter-free.
 - Activity stubs remain non-exported, share their corresponding slot process, and accept only a coordinator-issued capability for that slot. A capability is process-local, single-use, and expires closed.
 - A slot confirms contained APK/Dex preparation and native bookkeeping before the coordinator advances `starting` to `running`; failure advances the record to `error`. Even `running` remains runtime-slot state and is not a claim that the guest launcher Activity is visible.
@@ -64,6 +65,8 @@ None.
 - [x] Creation passes through persisted `draft` and `installing` states and imports an instance-owned APK snapshot before `ready`.
 - [x] Room records package/version, launcher and declared components, signer digest, and imported APK paths.
 - [x] The slot resolves a launcher class from the contained base/split APK classpath without initializing guest code.
+- [x] Imported code paths are read-only before dynamic loading, including migration of snapshots created by older builds.
+- [x] Slot preparation rejects a base APK whose package identity or signer no longer matches persisted provenance.
 - [x] The coordinator advances `starting` only after the slot reports successful package and native preparation.
 - [x] An eligible UI launch starts a bounded slot and opens its matching non-exported Activity stub through an expiring, one-time capability.
 - [x] Launch capabilities reject the wrong slot, premature consumption, reuse, and expiry in Java unit tests.
@@ -77,6 +80,7 @@ None.
 ## Remaining gaps and unknowns
 
 - APK snapshot import is implemented but update reconciliation and orphan cleanup are not.
+- Legacy split snapshots are sealed before loading but do not yet have independently persisted content hashes; new imports are read-only from their first write.
 - Launcher-class resolution and host stub routing are implemented, but guest resources, class initialization, `Application`/Activity attachment, PackageManager and ActivityManager virtualization, and native-library loading are not.
 - Runtime recovery, process-death containment, and per-instance storage isolation still need Android instrumentation tests; the guarded slot-startup path has static and Java-unit evidence only.
 - The Rust RuntimeCore build, JNI loading, and artifact packaging remain partial until CI verifies them.

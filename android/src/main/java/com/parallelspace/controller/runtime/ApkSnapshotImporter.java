@@ -97,7 +97,24 @@ public final class ApkSnapshotImporter {
     return new ComponentName(result.activityInfo.packageName, result.activityInfo.name);
   }
 
-  private static String signerDigest(PackageInfo packageInfo) throws IOException {
+  static void verifyPackageFile(
+      PackageManager packageManager,
+      File apk,
+      String expectedPackageName,
+      String expectedSignerDigest) throws IOException {
+    int signingFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+        ? PackageManager.GET_SIGNING_CERTIFICATES
+        : PackageManager.GET_SIGNATURES;
+    PackageInfo packageInfo = packageManager.getPackageArchiveInfo(apk.getAbsolutePath(), signingFlag);
+    if (packageInfo == null || !expectedPackageName.equals(packageInfo.packageName)) {
+      throw new IOException("The imported APK package identity changed");
+    }
+    if (!expectedSignerDigest.equals(signerDigest(packageInfo))) {
+      throw new IOException("The imported APK signer changed");
+    }
+  }
+
+  static String signerDigest(PackageInfo packageInfo) throws IOException {
     Signature[] signatures;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       if (packageInfo.signingInfo == null) {
@@ -138,11 +155,21 @@ public final class ApkSnapshotImporter {
   private static void copyAtomically(File source, File destination) throws IOException {
     if (!source.isFile()) throw new IOException("An installed APK file is unavailable.");
     File temporary = new File(destination.getParentFile(), destination.getName() + ".partial");
+    if (temporary.exists() && !temporary.delete()) {
+      throw new IOException("Cannot remove an incomplete APK snapshot.");
+    }
     try (BufferedInputStream input = new BufferedInputStream(new FileInputStream(source));
-         BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(temporary))) {
+         FileOutputStream fileOutput = new FileOutputStream(temporary);
+         BufferedOutputStream output = new BufferedOutputStream(fileOutput)) {
+      // Android 14+ rejects writable dynamically loaded code. The already-open descriptor
+      // remains writable while the path itself is sealed against replacement or mutation.
+      InstanceStoragePaths.makeReadOnly(temporary);
       byte[] buffer = new byte[BUFFER_SIZE];
       int count;
       while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+    } catch (IOException error) {
+      if (temporary.exists() && !temporary.delete()) temporary.deleteOnExit();
+      throw error;
     }
     if (destination.exists() && !destination.delete()) {
       throw new IOException("Cannot replace the previous APK snapshot.");

@@ -29,6 +29,7 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - The Android artifact targets ARM64 first. Build scripts must not fetch or execute arbitrary runtime code after application installation.
 - A successful native `startInstance` means native bookkeeping reached `running`; it is not evidence of APK execution.
 - Java owns imported APK provenance and signing metadata. The native core receives only the containing instance namespace and does not treat an imported APK path as trusted executable input.
+- Java owns Activity-stub routing and its one-time launch capabilities. Those capabilities do not cross JNI and do not extend native `startInstance` beyond bookkeeping.
 
 ## Related blueprints
 
@@ -65,4 +66,4 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - The concurrent Rust implementation and CI integration have not yet been verified by a completed workflow run.
 - JNI symbol/loading and ABI-version agreement still need Android instrumentation coverage.
 - Filesystem mapping beyond root containment, package parsing, native-library inspection/loading, and measured compatibility hooks are planned, not current behavior.
-- APK installation, DEX/resources/class loading, component routing, Binder adaptation, and Android-version compatibility remain Java/runtime-wide future work, not RuntimeCore v1.
+- Guest APK installation, resources/class initialization, guest-component attachment, Binder adaptation, and Android-version compatibility remain Java/runtime-wide future work, not RuntimeCore v1. Host Activity-stub routing is present but does not change this boundary.

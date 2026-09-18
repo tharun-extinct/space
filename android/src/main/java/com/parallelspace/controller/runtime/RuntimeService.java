@@ -158,12 +158,12 @@ public final class RuntimeService extends Service {
         repository.markRunning(instanceId);
         // Publish the capability only after durable controller state says the slot is running.
         if (!pendingLaunches.markReady(launchToken, instanceId)) {
+          Integer failedSlot = repository.require(instanceId).slot;
           repository.markStopped(instanceId);
-          InstanceEntity instance = repository.require(instanceId);
-          if (instance.slot != null) {
+          if (failedSlot != null) {
             stopService(new Intent(
                 RuntimeService.this,
-                instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class));
+                failedSlot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class));
           }
         }
       });

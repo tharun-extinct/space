@@ -1,4 +1,4 @@
-use jni::objects::{JObject, JString};
+use jni::objects::{JClass, JObject, JString};
 use jni::sys::{jboolean, jlong, jstring, JNI_FALSE, JNI_TRUE};
 use jni::JNIEnv;
 use std::collections::HashMap;
@@ -172,7 +172,7 @@ fn guard<T>(env: &mut JNIEnv, default: T, action: impl FnOnce(&mut JNIEnv) -> Re
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_createRuntime(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_createRuntime(
     mut env: JNIEnv, _this: JObject, storage_path: JString,
 ) -> jlong {
     guard(&mut env, 0, |env| {
@@ -184,15 +184,15 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_c
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_getApiVersion(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_getApiVersion(
     _env: JNIEnv,
-    _class: JObject,
+    _class: JClass,
 ) -> jni::sys::jint {
     1
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_mountInstanceStorage(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_mountInstanceStorage(
     mut env: JNIEnv, _this: JObject, handle: jlong, id: JString, path: JString,
 ) -> jboolean {
     guard(&mut env, JNI_FALSE, |env| {
@@ -209,7 +209,7 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_m
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_startInstance(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_startInstance(
     mut env: JNIEnv, _this: JObject, handle: jlong, id: JString, package: JString,
 ) {
     guard(&mut env, (), |env| {
@@ -225,7 +225,7 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_s
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_stopInstance(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_stopInstance(
     mut env: JNIEnv, _this: JObject, handle: jlong, id: JString,
 ) {
     guard(&mut env, (), |env| {
@@ -240,7 +240,7 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_s
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_getRuntimeStatus(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_getRuntimeStatus(
     mut env: JNIEnv, _this: JObject, handle: jlong, id: JString,
 ) -> jstring {
     guard(&mut env, ptr::null_mut(), |env| {
@@ -257,7 +257,7 @@ pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_g
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_parallelspace_controller_runtime_NativeRuntime_destroyRuntime(
+pub extern "system" fn Java_com_parallelverse_controller_runtime_NativeRuntime_destroyRuntime(
     mut env: JNIEnv, _this: JObject, handle: jlong,
 ) {
     guard(&mut env, (), |_env| with_registry(|runtimes| {

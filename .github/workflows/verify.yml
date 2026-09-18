@@ -64,4 +64,6 @@ jobs:
       - name: Build Rust runtime core for ARM64 Android
         working-directory: android/runtime-core
         run: cargo +1.89.0 ndk -t arm64-v8a -o jniLibs build --release
+      - name: Verify Java-to-Rust JNI symbols
+        run: bash .github/scripts/verify-jni-symbols.sh
       - run: gradle test assembleDebug --stacktrace

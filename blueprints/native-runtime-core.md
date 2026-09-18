@@ -8,7 +8,7 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 
 ## Current verified status
 
-**Partial (verified 2026-09-18).** A Rust crate under `android/runtime-core` and CI/build integration are present. The Java `NativeRuntime` contract exposes six coarse lifecycle/storage operations plus a native API-version query, rejects an observed version mismatch, and is owned by `VirtualSlotService` in one slot process. Until CI builds and packages the Rust library and tests exercise the ABI, the native version check and artifact loading remain unverified. RuntimeCore v1 provides state and storage invariants only; it does not install, load, virtualize, or execute target APKs.
+**Partial (verified 2026-09-18).** A Rust crate under `android/runtime-core` and CI/build integration are present. The Java `NativeRuntime` contract exposes six coarse lifecycle/storage operations plus a native API-version query, rejects an observed version mismatch, and is owned by `VirtualSlotService` in one slot process. Rust exports now match the Java package `com.parallelverse.controller.runtime`; CI checks every required symbol in the built ARM64 library before Gradle packages it. Device-level loading and API-version agreement remain unverified until the updated workflow and APK run. RuntimeCore v1 provides state and storage invariants only; it does not install, load, virtualize, or execute target APKs.
 
 ## Architecture dependencies
 
@@ -22,6 +22,7 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 ## Local rules and implications
 
 - RuntimeCore exposes `getApiVersion` plus the lifecycle/storage operations `createRuntime`, `mountInstanceStorage`, `startInstance`, `stopInstance`, `getRuntimeStatus`, and `destroyRuntime`; its Rust JNI exports must preserve their versioned semantics. RuntimeCore v1 does not expose a separate public C SDK.
+- JNI exports must derive from the Java binary name `com.parallelverse.controller.runtime.NativeRuntime`; CI must inspect the compiled shared library so application/package renames cannot silently break native lookup.
 - Every runtime is represented outside Rust by an opaque handle. Unknown, destroyed, cross-process, and double-destroyed handles fail safely.
 - Identifiers are bounded and validated. Storage paths are canonicalized or equivalently normalized, must remain beneath the Java-selected runtime root, and cannot be rebound while an instance is running.
 - State transitions are deterministic and synchronized. Rust reports transition errors to Java and never independently persists controller state.
@@ -50,12 +51,14 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - `android/build.gradle` — Android native artifact packaging integration.
 - `.github/workflows/verify.yml` — authoritative Rust tests and Android debug build.
 - `.github/workflows/release-apk.yml` — authoritative release-path Rust build and APK packaging.
+- `.github/scripts/verify-jni-symbols.sh` — derives the JNI class prefix from Java source and verifies every required export in the compiled ARM64 library.
 
 ## Acceptance or verification criteria
 
 - [ ] CI runs formatting/linting and Rust unit tests for RuntimeCore v1.
 - [ ] CI cross-compiles the ARM64 shared library and packages it into the Android APK.
-- [ ] Android verifies that `NativeRuntime.API_VERSION` matches the loaded native ABI.
+- [x] CI verifies that all seven JNI exports match the current Java package and class name.
+- [ ] Android verifies on-device that `NativeRuntime.API_VERSION` matches the loaded native ABI.
 - [ ] Invalid and destroyed handles fail without crashes, leaks, or undefined behavior.
 - [ ] Traversal, sibling-prefix, absolute-path, symlink, and rebind attempts cannot escape or replace an instance storage root.
 - [ ] Legal state transitions and rejected transitions have deterministic unit coverage.
@@ -68,6 +71,6 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 ## Remaining gaps and unknowns
 
 - The concurrent Rust implementation and CI integration have not yet been verified by a completed workflow run.
-- JNI symbol/loading, ABI-version agreement, and slot-process survival on incompatible artifacts still need Android instrumentation coverage.
+- On-device library loading, ABI-version agreement, and slot-process survival on incompatible artifacts still need Android instrumentation coverage.
 - Filesystem mapping beyond root containment, package parsing, native-library inspection/loading, and measured compatibility hooks are planned, not current behavior.
 - Guest APK installation, resources/class initialization, guest-component attachment, Binder adaptation, and Android-version compatibility remain Java/runtime-wide future work, not RuntimeCore v1. Host Activity-stub routing is present but does not change this boundary.

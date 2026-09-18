@@ -63,6 +63,27 @@ public final class RuntimeRepository {
         Arrays.asList(InstanceState.RUNNING.name(), InstanceState.STARTING.name(), InstanceState.STOPPING.name()));
   }
 
+  public synchronized void markRunning(String id) {
+    InstanceEntity instance = require(id);
+    int changed = database.instances().transition(
+        id,
+        InstanceState.RUNNING.name(),
+        instance.slot,
+        System.currentTimeMillis(),
+        java.util.Collections.singletonList(InstanceState.STARTING.name()));
+    if (changed != 1) throw new IllegalStateException("Instance was not waiting for its runtime slot");
+  }
+
+  public synchronized void markStartFailed(String id) {
+    int changed = database.instances().transition(
+        id,
+        InstanceState.ERROR.name(),
+        null,
+        System.currentTimeMillis(),
+        java.util.Collections.singletonList(InstanceState.STARTING.name()));
+    if (changed != 1) throw new IllegalStateException("Instance was not waiting for its runtime slot");
+  }
+
   /** A runtime-process restart cannot prove slot liveness, so it conservatively clears reservations. */
   public synchronized void reconcileAfterRuntimeRestart() {
     for (InstanceEntity instance : database.instances().all()) {

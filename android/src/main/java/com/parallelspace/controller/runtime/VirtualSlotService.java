@@ -21,23 +21,39 @@ public class VirtualSlotService extends Service {
     String instanceId = intent == null ? null : intent.getStringExtra("instance_id");
     String packageName = intent == null ? null : intent.getStringExtra("package_name");
     String baseApkPath = intent == null ? null : intent.getStringExtra("base_apk_path");
+    String apkClassPath = intent == null ? null : intent.getStringExtra("apk_class_path");
     String launcherActivity = intent == null ? null : intent.getStringExtra("launcher_activity");
-    if (instanceId == null || packageName == null || baseApkPath == null
+    if (instanceId == null || packageName == null || baseApkPath == null || apkClassPath == null
         || launcherActivity == null) return START_NOT_STICKY;
     String storagePath = new java.io.File(new java.io.File(getFilesDir(), "instances"), instanceId).getAbsolutePath();
     try {
       InstanceStoragePaths.requireContainedFile(
           new java.io.File(storagePath), new java.io.File(baseApkPath));
+      for (String apkPath : apkClassPath.split(java.util.regex.Pattern.quote(java.io.File.pathSeparator))) {
+        InstanceStoragePaths.requireContainedFile(
+            new java.io.File(storagePath), new java.io.File(apkPath));
+      }
+      GuestCodeLoader.loadLauncherWithoutInitialization(
+          this, instanceId, apkClassPath, launcherActivity);
       if (!nativeRuntime.mountInstanceStorage(nativeHandle, instanceId, storagePath)) {
         stopSelf(startId);
         return START_NOT_STICKY;
       }
-      // This initializes only the native compatibility slot; it does not load an APK.
+      // Class resolution above does not initialize the guest or attach an Android component.
       nativeRuntime.startInstance(nativeHandle, instanceId, packageName);
-    } catch (java.io.IOException | IllegalArgumentException | IllegalStateException error) {
+      reportSlotState(RuntimeService.ACTION_SLOT_READY, instanceId);
+    } catch (java.io.IOException | ClassNotFoundException | IllegalArgumentException
+        | IllegalStateException error) {
+      reportSlotState(RuntimeService.ACTION_SLOT_FAILED, instanceId);
       stopSelf(startId);
     }
     return START_NOT_STICKY;
+  }
+
+  private void reportSlotState(String action, String instanceId) {
+    startService(new Intent(this, RuntimeService.class)
+        .setAction(action)
+        .putExtra(RuntimeService.EXTRA_INSTANCE_ID, instanceId));
   }
 
   @Override public void onDestroy() {

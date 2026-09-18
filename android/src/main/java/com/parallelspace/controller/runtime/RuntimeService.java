@@ -9,9 +9,14 @@ import androidx.room.Room;
 
 /** Runtime owner in :runtime; this process deliberately has no Flutter dependency. */
 public final class RuntimeService extends Service {
+  static final String ACTION_SLOT_READY = "com.parallelverse.controller.runtime.SLOT_READY";
+  static final String ACTION_SLOT_FAILED = "com.parallelverse.controller.runtime.SLOT_FAILED";
+  static final String EXTRA_INSTANCE_ID = "instance_id";
   private RuntimeDatabase database;
   private RuntimeRepository repository;
   private java.util.concurrent.ExecutorService maintenanceExecutor;
+  private final java.util.concurrent.CountDownLatch recoveryComplete =
+      new java.util.concurrent.CountDownLatch(1);
 
   @Override public void onCreate() {
     super.onCreate();
@@ -23,14 +28,22 @@ public final class RuntimeService extends Service {
     // Runtime slots cannot be trusted after their coordinator was reclaimed.
     stopService(new Intent(this, VirtualSlot0Service.class));
     stopService(new Intent(this, VirtualSlot1Service.class));
-    maintenanceExecutor.execute(repository::reconcileAfterRuntimeRestart);
+    maintenanceExecutor.execute(() -> {
+      try {
+        repository.reconcileAfterRuntimeRestart();
+      } finally {
+        recoveryComplete.countDown();
+      }
+    });
   }
 
   private final IRuntimeService.Stub binder = new IRuntimeService.Stub() {
     @Override public String createInstance(String packageName, String displayName) {
+      awaitRecovery();
       return repository.create(packageName, displayName).id;
     }
     @Override public java.util.List<Bundle> listInstances() {
+      awaitRecovery();
       java.util.List<Bundle> result = new java.util.ArrayList<>();
       for (InstanceEntity instance : repository.all()) {
         Bundle item = new Bundle();
@@ -43,23 +56,31 @@ public final class RuntimeService extends Service {
       return result;
     }
     @Override public void startInstance(String instanceId) {
+      awaitRecovery();
       VirtualPackageEntity virtualPackage = repository.requireVirtualPackage(instanceId);
       java.io.File baseApk = repository.resolveSnapshotFile(
           instanceId, virtualPackage.baseApkRelativePath);
+      java.util.List<String> apkPaths = new java.util.ArrayList<>();
+      apkPaths.add(baseApk.getAbsolutePath());
+      if (!virtualPackage.splitApkRelativePaths.isBlank()) {
+        for (String splitPath : virtualPackage.splitApkRelativePaths.split("\\n")) {
+          apkPaths.add(repository.resolveSnapshotFile(instanceId, splitPath).getAbsolutePath());
+        }
+      }
       InstanceEntity instance = repository.reserveStart(instanceId);
       Class<?> slotService = instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class;
       Intent intent = new Intent(RuntimeService.this, slotService)
           .putExtra("instance_id", instance.id)
           .putExtra("package_name", instance.packageName)
           .putExtra("base_apk_path", baseApk.getAbsolutePath())
+          .putExtra("apk_class_path", String.join(java.io.File.pathSeparator, apkPaths))
           .putExtra("launcher_activity", virtualPackage.launcherActivity)
           .putExtra("signer_sha256", virtualPackage.signerSha256);
       ComponentName started = startService(intent);
       if (started == null) throw new IllegalStateException("Could not start runtime slot");
-      database.instances().transition(instance.id, InstanceState.RUNNING.name(), instance.slot, System.currentTimeMillis(),
-          java.util.Collections.singletonList(InstanceState.STARTING.name()));
     }
     @Override public void stopInstance(String instanceId) {
+      awaitRecovery();
       InstanceEntity instance = repository.require(instanceId);
       if (instance.slot != null) {
         stopService(new Intent(RuntimeService.this, instance.slot == 0 ? VirtualSlot0Service.class : VirtualSlot1Service.class));
@@ -67,10 +88,32 @@ public final class RuntimeService extends Service {
       repository.markStopped(instanceId);
     }
     @Override public String getInstanceState(String instanceId) {
+      awaitRecovery();
       InstanceEntity instance = database.instances().find(instanceId);
       return instance == null ? InstanceState.ERROR.name() : instance.state;
     }
   };
+
+  private void awaitRecovery() {
+    try {
+      recoveryComplete.await();
+    } catch (InterruptedException error) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Runtime recovery was interrupted", error);
+    }
+  }
+
+  @Override public int onStartCommand(Intent intent, int flags, int startId) {
+    if (intent == null || intent.getAction() == null) return START_NOT_STICKY;
+    String instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID);
+    if (instanceId == null) return START_NOT_STICKY;
+    if (ACTION_SLOT_READY.equals(intent.getAction())) {
+      maintenanceExecutor.execute(() -> repository.markRunning(instanceId));
+    } else if (ACTION_SLOT_FAILED.equals(intent.getAction())) {
+      maintenanceExecutor.execute(() -> repository.markStartFailed(instanceId));
+    }
+    return START_NOT_STICKY;
+  }
 
   @Override public IBinder onBind(Intent intent) { return binder; }
 

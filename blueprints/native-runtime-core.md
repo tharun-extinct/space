@@ -28,6 +28,7 @@ This is a distinct responsibility because it has its own ABI and ownership rules
 - Rust panics and allocation/encoding failures cannot unwind through JNI.
 - The Android artifact targets ARM64 first. Build scripts must not fetch or execute arbitrary runtime code after application installation.
 - A successful native `startInstance` means native bookkeeping reached `running`; it is not evidence of APK execution.
+- Java owns imported APK provenance and signing metadata. The native core receives only the containing instance namespace and does not treat an imported APK path as trusted executable input.
 
 ## Related blueprints
 

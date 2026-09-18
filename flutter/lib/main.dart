@@ -48,6 +48,8 @@ class CloneInstance {
   final String displayName;
   final String state;
 
+  bool get canOpen => state == 'READY' || state == 'STOPPED';
+
   factory CloneInstance.fromMap(Map<Object?, Object?> map) {
     return CloneInstance(
       id: map['id']! as String,
@@ -174,13 +176,22 @@ class InstancesPage extends ConsumerWidget {
                   final instance = items[index];
                   return Card(
                     child: ListTile(
-                      onTap: () => _openInstance(context, ref, instance),
+                      onTap: instance.canOpen
+                          ? () => _openInstance(context, ref, instance)
+                          : null,
                       leading: const CircleAvatar(child: Icon(Icons.apps)),
                       title: Text(instance.displayName),
-                      subtitle: Text(instance.packageName),
+                      subtitle: Text(
+                        '${instance.packageName}\n${instance.state.toLowerCase()}',
+                      ),
+                      isThreeLine: true,
                       trailing: IconButton(
-                        tooltip: 'Open ${instance.displayName}',
-                        onPressed: () => _openInstance(context, ref, instance),
+                        tooltip: instance.canOpen
+                            ? 'Open ${instance.displayName}'
+                            : '${instance.displayName} is ${instance.state.toLowerCase()}',
+                        onPressed: instance.canOpen
+                            ? () => _openInstance(context, ref, instance)
+                            : null,
                         icon: const Icon(Icons.play_arrow),
                       ),
                     ),

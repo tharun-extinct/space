@@ -1,6 +1,8 @@
 package com.parallelverse.controller.runtime;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
+import java.io.IOException;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -11,21 +13,39 @@ public final class RuntimeRepository {
   private static final int SLOT_COUNT = 2;
   private final RuntimeDatabase database;
   private final File instancesRoot;
+  private final ApkSnapshotImporter apkImporter;
   private final SlotAllocator slots = new SlotAllocator(SLOT_COUNT);
 
   public RuntimeRepository(Context context, RuntimeDatabase database) {
     this.database = database;
     this.instancesRoot = new File(context.getFilesDir(), "instances");
+    this.apkImporter = new ApkSnapshotImporter(context, instancesRoot);
   }
 
-  public synchronized InstanceEntity create(String packageName, String displayName, boolean supported) {
+  public synchronized InstanceEntity create(String packageName, String displayName) {
     String id = UUID.randomUUID().toString();
-    InstanceState state = supported ? InstanceState.READY : InstanceState.UNSUPPORTED;
     File storage = new File(instancesRoot, id);
     if (!storage.mkdirs() && !storage.isDirectory()) throw new IllegalStateException("Cannot create instance storage");
-    InstanceEntity instance = new InstanceEntity(id, packageName, displayName, state.name(), null, System.currentTimeMillis());
+    InstanceEntity instance = new InstanceEntity(
+        id, packageName, displayName, InstanceState.DRAFT.name(), null, System.currentTimeMillis());
     database.instances().save(instance);
-    return instance;
+    transition(id, InstanceState.INSTALLING, Arrays.asList(InstanceState.DRAFT));
+    try {
+      VirtualPackageEntity virtualPackage = apkImporter.importPackage(id, packageName);
+      database.virtualPackages().save(virtualPackage);
+      transition(id, InstanceState.READY, Arrays.asList(InstanceState.INSTALLING));
+    } catch (PackageManager.NameNotFoundException | IOException error) {
+      transition(id, InstanceState.UNSUPPORTED, Arrays.asList(InstanceState.INSTALLING));
+    }
+    return require(id);
+  }
+
+  private void transition(String id, InstanceState state, List<InstanceState> from) {
+    List<String> allowed = new java.util.ArrayList<>();
+    for (InstanceState item : from) allowed.add(item.name());
+    int changed = database.instances().transition(
+        id, state.name(), null, System.currentTimeMillis(), allowed);
+    if (changed != 1) throw new IllegalStateException("Instance state changed unexpectedly");
   }
 
   public synchronized InstanceEntity reserveStart(String id) {

@@ -32,6 +32,8 @@ The earlier C++ lifecycle tracker is superseded by the Rust RuntimeCore migratio
 
 An instance has a stable controller-generated ID, a target package name, and one assigned runtime slot while active. Room is the authoritative metadata store. The app-private filesystem owns data under one directory per instance; Dart local storage may hold UI preferences only. Dart and Java must not write the same database.
 
+Java imports an immutable execution snapshot for each instance before it becomes `ready`. The snapshot consists of the installed package's base APK and split APKs under the instance directory plus Room-owned package name, version, launcher component, and signing-certificate digest. Runtime code consumes only paths resolved beneath that instance directory. Importing a snapshot is not itself successful clone execution and does not authorize falling back to the device-installed launcher.
+
 A logical virtual-user identity is an application-level namespace associated with instance metadata and storage. It is not an Android UID, does not change the Linux credentials of a process, and is not a security boundary. The Java control plane owns the mapping from controller identity to logical virtual user; the native core may validate and enforce the supplied storage namespace but must not invent identity.
 
 ### States and recovery

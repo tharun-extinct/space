@@ -15,7 +15,9 @@ public final class RuntimeService extends Service {
 
   @Override public void onCreate() {
     super.onCreate();
-    database = Room.databaseBuilder(getApplicationContext(), RuntimeDatabase.class, "runtime.db").build();
+    database = Room.databaseBuilder(getApplicationContext(), RuntimeDatabase.class, "runtime.db")
+        .addMigrations(RuntimeDatabase.MIGRATION_1_2)
+        .build();
     repository = new RuntimeRepository(getApplicationContext(), database);
     maintenanceExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     // Runtime slots cannot be trusted after their coordinator was reclaimed.
@@ -26,7 +28,7 @@ public final class RuntimeService extends Service {
 
   private final IRuntimeService.Stub binder = new IRuntimeService.Stub() {
     @Override public String createInstance(String packageName, String displayName) {
-      return repository.create(packageName, displayName, isInstalledPackage(packageName)).id;
+      return repository.create(packageName, displayName).id;
     }
     @Override public java.util.List<Bundle> listInstances() {
       java.util.List<Bundle> result = new java.util.ArrayList<>();
@@ -64,10 +66,6 @@ public final class RuntimeService extends Service {
     }
   };
 
-  private boolean isInstalledPackage(String packageName) {
-    try { getPackageManager().getApplicationInfo(packageName, 0); return true; }
-    catch (android.content.pm.PackageManager.NameNotFoundException ignored) { return false; }
-  }
   @Override public IBinder onBind(Intent intent) { return binder; }
 
   @Override public void onDestroy() {

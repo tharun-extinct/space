@@ -1,9 +1,9 @@
 package com.parallelverse.controller.runtime;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ComponentInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -49,8 +49,8 @@ public final class ApkSnapshotImporter {
       throw new IOException("The installed package does not expose a base APK.");
     }
 
-    ComponentName launcher = resolveLauncher(packageName);
-    if (launcher == null) {
+    String launcherActivity = resolveLauncher(packageName);
+    if (launcherActivity == null) {
       throw new IOException("The installed package does not expose a launcher activity.");
     }
 
@@ -77,7 +77,7 @@ public final class ApkSnapshotImporter {
             ? packageInfo.getLongVersionCode()
             : packageInfo.versionCode,
         packageInfo.versionName,
-        launcher.getClassName(),
+        launcherActivity,
         signerDigest(packageInfo),
         "package/base.apk",
         String.join("\n", splitPaths),
@@ -88,16 +88,16 @@ public final class ApkSnapshotImporter {
         System.currentTimeMillis());
   }
 
-  private ComponentName resolveLauncher(String packageName) {
+  private String resolveLauncher(String packageName) {
     Intent query = new Intent(Intent.ACTION_MAIN)
         .addCategory(Intent.CATEGORY_LAUNCHER)
         .setPackage(packageName);
     ResolveInfo result = packageManager.resolveActivity(query, 0);
     if (result == null || result.activityInfo == null) return null;
-    return new ComponentName(result.activityInfo.packageName, result.activityInfo.name);
+    return implementationClassName(result.activityInfo);
   }
 
-  static void verifyPackageFile(
+  static PackageInfo verifyPackageFile(
       PackageManager packageManager,
       File apk,
       String expectedPackageName,
@@ -105,13 +105,55 @@ public final class ApkSnapshotImporter {
     int signingFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
         ? PackageManager.GET_SIGNING_CERTIFICATES
         : PackageManager.GET_SIGNATURES;
-    PackageInfo packageInfo = packageManager.getPackageArchiveInfo(apk.getAbsolutePath(), signingFlag);
+    PackageInfo packageInfo = packageManager.getPackageArchiveInfo(
+        apk.getAbsolutePath(), signingFlag | PackageManager.GET_ACTIVITIES);
     if (packageInfo == null || !expectedPackageName.equals(packageInfo.packageName)) {
       throw new IOException("The imported APK package identity changed");
     }
     if (!expectedSignerDigest.equals(signerDigest(packageInfo))) {
       throw new IOException("The imported APK signer changed");
     }
+    return packageInfo;
+  }
+
+  /** Resolves old records that persisted an activity-alias instead of its implementation class. */
+  static String resolveRecordedLauncher(PackageInfo packageInfo, String recordedLauncher)
+      throws IOException {
+    String normalizedRecorded = normalizeComponentClassName(
+        packageInfo.packageName, recordedLauncher);
+    if (packageInfo.activities != null) {
+      for (ActivityInfo activity : packageInfo.activities) {
+        if (activity == null || activity.name == null) continue;
+        String declaredName = normalizeComponentClassName(packageInfo.packageName, activity.name);
+        String implementationName = implementationClassName(activity);
+        if (normalizedRecorded.equals(declaredName)
+            || normalizedRecorded.equals(implementationName)) {
+          return implementationName;
+        }
+      }
+    }
+    throw new IOException("The recorded launcher component is not declared by the imported APK");
+  }
+
+  static String normalizeComponentClassName(String packageName, String className) {
+    if (className == null || className.isBlank()) {
+      throw new IllegalArgumentException("Component class name is missing");
+    }
+    if (className.charAt(0) == '.') return packageName + className;
+    return className.indexOf('.') < 0 ? packageName + "." + className : className;
+  }
+
+  static String resolveActivityImplementationClassName(
+      String packageName, String activityName, String targetActivity) {
+    String implementationName = targetActivity == null || targetActivity.isBlank()
+        ? activityName
+        : targetActivity;
+    return normalizeComponentClassName(packageName, implementationName);
+  }
+
+  private static String implementationClassName(ActivityInfo activity) {
+    return resolveActivityImplementationClassName(
+        activity.packageName, activity.name, activity.targetActivity);
   }
 
   static String signerDigest(PackageInfo packageInfo) throws IOException {

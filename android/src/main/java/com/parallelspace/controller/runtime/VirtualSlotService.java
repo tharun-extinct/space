@@ -39,13 +39,15 @@ public class VirtualSlotService extends Service {
             instanceRoot, new java.io.File(apkPath));
         if (!codeFiles.contains(codeFile)) codeFiles.add(codeFile);
       }
-      ApkSnapshotImporter.verifyPackageFile(
+      android.content.pm.PackageInfo snapshotPackage = ApkSnapshotImporter.verifyPackageFile(
           getPackageManager(), baseCodeFile, packageName, signerSha256);
       for (java.io.File codeFile : codeFiles) {
         InstanceStoragePaths.requireReadOnlyCodeFile(instanceRoot, codeFile);
       }
+      String launcherImplementation = ApkSnapshotImporter.resolveRecordedLauncher(
+          snapshotPackage, launcherActivity);
       GuestCodeLoader.loadLauncherWithoutInitialization(
-          this, instanceId, apkClassPath, launcherActivity);
+          this, instanceId, apkClassPath, launcherImplementation);
       if (!nativeRuntime.mountInstanceStorage(nativeHandle, instanceId, storagePath)) {
         throw new IllegalStateException("The native runtime rejected instance storage");
       }
